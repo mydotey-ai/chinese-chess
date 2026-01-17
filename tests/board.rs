@@ -1,4 +1,4 @@
-use chinese_chess::board::{Board, coordinate::Coordinate, square::Square};
+use chinese_chess::board::{coordinate::Coordinate, square::Square, Board};
 
 #[test]
 fn test_board_creation() {
@@ -10,7 +10,7 @@ fn test_board_creation() {
 fn test_coordinate_validation() {
     let valid = Coordinate::new(3, 5);
     assert!(valid.is_valid());
-    
+
     let invalid = Coordinate::new(10, 5);
     assert!(!invalid.is_valid());
 }
