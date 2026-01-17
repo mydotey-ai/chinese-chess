@@ -1,0 +1,11 @@
+[package]
+name = "chinese-chess"
+version = "0.1.0"
+edition = "2021"
+description = "A Chinese Chess (Xiangqi) game implementation in Rust"
+license = "Apache-2.0"
+repository = "https://github.com/koqizhao/chinese-chess"
+
+[dependencies]
+
+[dev-dependencies]
