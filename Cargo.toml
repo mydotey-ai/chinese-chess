@@ -7,5 +7,7 @@ license = "Apache-2.0"
 repository = "https://github.com/koqizhao/chinese-chess"
 
 [dependencies]
+clap = { version = "4.0", features = ["derive"] }
+colored = "2.0"
 
 [dev-dependencies]
