@@ -1,5 +1,5 @@
 use crate::board::coordinate::Coordinate;
-use crate::board::square::{Color, PieceType, Square};
+use crate::board::square::Square;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]

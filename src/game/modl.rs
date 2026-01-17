@@ -3,7 +3,6 @@ use crate::board::{
 };
 use crate::game::rules::validate_move;
 use crate::game::state::GameState;
-use crate::pieces::{chariot::Chariot, king::King};
 
 #[derive(Debug, Clone)]
 pub struct Game {

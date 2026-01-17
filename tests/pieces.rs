@@ -17,7 +17,7 @@ fn test_king_movement() {
 
 #[test]
 fn test_chariot_movement() {
-    let mut board = Board::new();
+    let board = Board::new();
     let chariot = Chariot::new(Color::Black);
     let start = Coordinate::new(0, 9);
 
