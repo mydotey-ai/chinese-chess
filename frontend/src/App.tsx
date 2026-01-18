@@ -3,7 +3,7 @@ import ChessBoard from './components/ChessBoard.tsx';
 import HistoryPanel from './components/HistoryPanel.tsx';
 import GameStatus from './components/GameStatus.tsx';
 import ControlPanel from './components/ControlPanel.tsx';
-import { invoke } from '@tauri-apps/api';
+import { invoke } from '@tauri-apps/api/core';
 
 interface GameState {
   board: any;
@@ -24,28 +24,48 @@ const App: React.FC = () => {
 
   const initGame = async () => {
     try {
-      console.log('Trying to invoke new_game...');
       const state = await invoke<GameState>('new_game');
-      console.log('new_game result:', state);
       setGameState(state);
       setMoveHistory([]);
     } catch (error) {
       console.error('Error initializing game:', error);
-      console.error('Error type:', typeof error);
-      console.error('Error details:', JSON.stringify(error, null, 2));
+      // Create fallback game state
+      const cells = Array(10).fill(null).map((_: any, y: number) => 
+        Array(9).fill(null).map((_: any, x: number) => {
+          // Black pieces (top, y=0)
+          if (y === 0) {
+            if ([0, 8].includes(x)) return { piece_type: 'Chariot', color: 'Black' };
+            if ([1, 7].includes(x)) return { piece_type: 'Horse', color: 'Black' };
+            if ([2, 6].includes(x)) return { piece_type: 'Elephant', color: 'Black' };
+            if ([3, 5].includes(x)) return { piece_type: 'Advisor', color: 'Black' };
+            if (x === 4) return { piece_type: 'General', color: 'Black' };
+          }
+          if (y === 2 && [1, 7].includes(x)) return { piece_type: 'Cannon', color: 'Black' };
+          if (y === 3 && x % 2 === 0) return { piece_type: 'Soldier', color: 'Black' };
+          
+          // Red pieces (bottom, y=9)
+          if (y === 9) {
+            if ([0, 8].includes(x)) return { piece_type: 'Chariot', color: 'Red' };
+            if ([1, 7].includes(x)) return { piece_type: 'Horse', color: 'Red' };
+            if ([2, 6].includes(x)) return { piece_type: 'Elephant', color: 'Red' };
+            if ([3, 5].includes(x)) return { piece_type: 'Advisor', color: 'Red' };
+            if (x === 4) return { piece_type: 'General', color: 'Red' };
+          }
+          if (y === 7 && [1, 7].includes(x)) return { piece_type: 'Cannon', color: 'Red' };
+          if (y === 6 && x % 2 === 0) return { piece_type: 'Soldier', color: 'Red' };
+          
+          return null;
+        })
+      );
       
-      // 提供一个默认的游戏状态，以避免一直显示 Loading...
-      const defaultState: GameState = {
-        board: {
-          cells: Array(10).fill(null).map(() => Array(9).fill(null))
-        },
+      setGameState({
+        board: { cells },
         current_turn: 'Red',
         is_in_check: false,
         is_ended: false,
         winner: null
-      };
-      
-      setGameState(defaultState);
+      });
+      setMoveHistory([]);
     }
   };
 

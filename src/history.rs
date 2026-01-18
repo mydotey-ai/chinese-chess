@@ -35,6 +35,10 @@ impl History {
     pub fn is_empty(&self) -> bool {
         self.moves.is_empty()
     }
+
+    pub fn clear(&mut self) {
+        self.moves.clear();
+    }
 }
 
 impl Default for History {

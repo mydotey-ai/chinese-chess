@@ -124,27 +124,35 @@ start_dev_server() {
 # 启动 Tauri 应用程序的函数
 start_tauri_app() {
     show_info "正在启动 Tauri 应用程序..."
-
-    # 启动 Tauri 开发版本
-    cargo run
+    
+    # 使用 Tauri 开发模式（会自动启动前端和后端）
+    cd frontend || exit 1
+    npm run tauri:dev
 }
 
 # 主函数
 main() {
     show_info "开始构建和启动中国象棋应用程序"
-
+    
     # 检查依赖项
     check_dependencies
-
+    
     # 清理现有进程
     cleanup_processes
-
-    # 构建前端和后端
-    build_frontend
-    build_backend
-
-    # 启动开发服务器和应用程序
-    start_dev_server
+    
+    # 安装前端依赖（如果需要）
+    cd frontend || exit 1
+    if [ ! -d "node_modules" ]; then
+        show_info "node_modules 不存在，正在安装依赖..."
+        npm install
+        if [ $? -ne 0 ]; then
+            show_error "依赖安装失败"
+            exit 1
+        fi
+    fi
+    cd .. || exit 1
+    
+    # 使用 Tauri 开发模式启动（会自动构建和运行前端和后端）
     start_tauri_app
 }
 

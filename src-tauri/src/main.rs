@@ -1,9 +1,10 @@
-use tauri::Builder;
 use chinese_chess::game::GameStateManager;
+use std::sync::Mutex;
+use tauri::Builder;
 
 fn main() {
     Builder::default()
-        .manage(GameStateManager::new())
+        .manage(Mutex::new(GameStateManager::new()))
         .invoke_handler(tauri::generate_handler![
             chinese_chess::tauri_commands::make_move,
             chinese_chess::tauri_commands::undo_move,

@@ -29,45 +29,45 @@ impl GameState {
     }
 
     fn initialize_pieces(board: &mut Board) {
-        // Red pieces (bottom, y=0)
-        board.set_piece(0, 0, Some(Piece::new(PieceType::Chariot, Color::Red)));
-        board.set_piece(1, 0, Some(Piece::new(PieceType::Horse, Color::Red)));
-        board.set_piece(2, 0, Some(Piece::new(PieceType::Elephant, Color::Red)));
-        board.set_piece(3, 0, Some(Piece::new(PieceType::Advisor, Color::Red)));
-        board.set_piece(4, 0, Some(Piece::new(PieceType::General, Color::Red)));
-        board.set_piece(5, 0, Some(Piece::new(PieceType::Advisor, Color::Red)));
-        board.set_piece(6, 0, Some(Piece::new(PieceType::Elephant, Color::Red)));
-        board.set_piece(7, 0, Some(Piece::new(PieceType::Horse, Color::Red)));
-        board.set_piece(8, 0, Some(Piece::new(PieceType::Chariot, Color::Red)));
+        // Black pieces (top, y=0)
+        board.set_piece(0, 0, Some(Piece::new(PieceType::Chariot, Color::Black)));
+        board.set_piece(1, 0, Some(Piece::new(PieceType::Horse, Color::Black)));
+        board.set_piece(2, 0, Some(Piece::new(PieceType::Elephant, Color::Black)));
+        board.set_piece(3, 0, Some(Piece::new(PieceType::Advisor, Color::Black)));
+        board.set_piece(4, 0, Some(Piece::new(PieceType::General, Color::Black)));
+        board.set_piece(5, 0, Some(Piece::new(PieceType::Advisor, Color::Black)));
+        board.set_piece(6, 0, Some(Piece::new(PieceType::Elephant, Color::Black)));
+        board.set_piece(7, 0, Some(Piece::new(PieceType::Horse, Color::Black)));
+        board.set_piece(8, 0, Some(Piece::new(PieceType::Chariot, Color::Black)));
 
-        board.set_piece(1, 2, Some(Piece::new(PieceType::Cannon, Color::Red)));
-        board.set_piece(7, 2, Some(Piece::new(PieceType::Cannon, Color::Red)));
+        board.set_piece(1, 2, Some(Piece::new(PieceType::Cannon, Color::Black)));
+        board.set_piece(7, 2, Some(Piece::new(PieceType::Cannon, Color::Black)));
 
-        board.set_piece(0, 3, Some(Piece::new(PieceType::Soldier, Color::Red)));
-        board.set_piece(2, 3, Some(Piece::new(PieceType::Soldier, Color::Red)));
-        board.set_piece(4, 3, Some(Piece::new(PieceType::Soldier, Color::Red)));
-        board.set_piece(6, 3, Some(Piece::new(PieceType::Soldier, Color::Red)));
-        board.set_piece(8, 3, Some(Piece::new(PieceType::Soldier, Color::Red)));
+        board.set_piece(0, 3, Some(Piece::new(PieceType::Soldier, Color::Black)));
+        board.set_piece(2, 3, Some(Piece::new(PieceType::Soldier, Color::Black)));
+        board.set_piece(4, 3, Some(Piece::new(PieceType::Soldier, Color::Black)));
+        board.set_piece(6, 3, Some(Piece::new(PieceType::Soldier, Color::Black)));
+        board.set_piece(8, 3, Some(Piece::new(PieceType::Soldier, Color::Black)));
 
-        // Black pieces (top, y=9)
-        board.set_piece(0, 9, Some(Piece::new(PieceType::Chariot, Color::Black)));
-        board.set_piece(1, 9, Some(Piece::new(PieceType::Horse, Color::Black)));
-        board.set_piece(2, 9, Some(Piece::new(PieceType::Elephant, Color::Black)));
-        board.set_piece(3, 9, Some(Piece::new(PieceType::Advisor, Color::Black)));
-        board.set_piece(4, 9, Some(Piece::new(PieceType::General, Color::Black)));
-        board.set_piece(5, 9, Some(Piece::new(PieceType::Advisor, Color::Black)));
-        board.set_piece(6, 9, Some(Piece::new(PieceType::Elephant, Color::Black)));
-        board.set_piece(7, 9, Some(Piece::new(PieceType::Horse, Color::Black)));
-        board.set_piece(8, 9, Some(Piece::new(PieceType::Chariot, Color::Black)));
+        // Red pieces (bottom, y=9)
+        board.set_piece(0, 9, Some(Piece::new(PieceType::Chariot, Color::Red)));
+        board.set_piece(1, 9, Some(Piece::new(PieceType::Horse, Color::Red)));
+        board.set_piece(2, 9, Some(Piece::new(PieceType::Elephant, Color::Red)));
+        board.set_piece(3, 9, Some(Piece::new(PieceType::Advisor, Color::Red)));
+        board.set_piece(4, 9, Some(Piece::new(PieceType::General, Color::Red)));
+        board.set_piece(5, 9, Some(Piece::new(PieceType::Advisor, Color::Red)));
+        board.set_piece(6, 9, Some(Piece::new(PieceType::Elephant, Color::Red)));
+        board.set_piece(7, 9, Some(Piece::new(PieceType::Horse, Color::Red)));
+        board.set_piece(8, 9, Some(Piece::new(PieceType::Chariot, Color::Red)));
 
-        board.set_piece(1, 7, Some(Piece::new(PieceType::Cannon, Color::Black)));
-        board.set_piece(7, 7, Some(Piece::new(PieceType::Cannon, Color::Black)));
+        board.set_piece(1, 7, Some(Piece::new(PieceType::Cannon, Color::Red)));
+        board.set_piece(7, 7, Some(Piece::new(PieceType::Cannon, Color::Red)));
 
-        board.set_piece(0, 6, Some(Piece::new(PieceType::Soldier, Color::Black)));
-        board.set_piece(2, 6, Some(Piece::new(PieceType::Soldier, Color::Black)));
-        board.set_piece(4, 6, Some(Piece::new(PieceType::Soldier, Color::Black)));
-        board.set_piece(6, 6, Some(Piece::new(PieceType::Soldier, Color::Black)));
-        board.set_piece(8, 6, Some(Piece::new(PieceType::Soldier, Color::Black)));
+        board.set_piece(0, 6, Some(Piece::new(PieceType::Soldier, Color::Red)));
+        board.set_piece(2, 6, Some(Piece::new(PieceType::Soldier, Color::Red)));
+        board.set_piece(4, 6, Some(Piece::new(PieceType::Soldier, Color::Red)));
+        board.set_piece(6, 6, Some(Piece::new(PieceType::Soldier, Color::Red)));
+        board.set_piece(8, 6, Some(Piece::new(PieceType::Soldier, Color::Red)));
     }
 }
 
@@ -77,10 +77,19 @@ impl Default for GameState {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct GameStateManager {
     pub state: GameState,
     pub history: History,
+}
+
+impl Clone for GameStateManager {
+    fn clone(&self) -> Self {
+        Self {
+            state: self.state.clone(),
+            history: self.history.clone(),
+        }
+    }
 }
 
 impl GameStateManager {
@@ -278,5 +287,19 @@ impl GameStateManager {
 impl Default for GameStateManager {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+// Implement AsRef for Tauri State compatibility
+impl AsRef<GameState> for GameStateManager {
+    fn as_ref(&self) -> &GameState {
+        &self.state
+    }
+}
+
+// Implement AsMut for Tauri State compatibility
+impl AsMut<GameState> for GameStateManager {
+    fn as_mut(&mut self) -> &mut GameState {
+        &mut self.state
     }
 }
