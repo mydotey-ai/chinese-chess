@@ -167,9 +167,65 @@ const App: React.FC = () => {
     }
   };
 
+  const getPieceName = (piece: { piece_type: string; color: string }) => {
+    const chineseNames: Record<string, Record<string, string>> = {
+      General: { Red: '帅', Black: '将' },
+      Advisor: { Red: '仕', Black: '士' },
+      Elephant: { Red: '相', Black: '象' },
+      Horse: { Red: '马', Black: '马' },
+      Chariot: { Red: '车', Black: '车' },
+      Cannon: { Red: '炮', Black: '炮' },
+      Soldier: { Red: '兵', Black: '卒' }
+    };
+    return chineseNames[piece.piece_type][piece.color];
+  };
+
+  const convertMoveToNotation = (fromX: number, fromY: number, toX: number, toY: number) => {
+    if (!gameState) return '';
+    
+    const piece = gameState.board.cells[fromY][fromX];
+    if (!piece) return '';
+    
+    const pieceName = getPieceName(piece);
+    
+    const colNum = piece.color === 'Red' ? (9 - fromX) : (fromX + 1);
+    const rowNum = piece.color === 'Red' ? (10 - fromY) : (fromY + 1);
+    
+    const dx = toX - fromX;
+    const dy = toY - fromY;
+    
+    let action: string;
+    let target: string;
+    
+    if (dx === 0) {
+      action = piece.color === 'Red' ? 
+        (dy > 0 ? '退' : '进') : 
+        (dy < 0 ? '退' : '进');
+      target = Math.abs(dy).toString();
+    } else {
+      const horizontalDist = Math.abs(dx);
+      const targetColNum = piece.color === 'Red' ? (9 - toX) : (toX + 1);
+      
+      if (dy === 0) {
+        action = '平';
+        target = targetColNum.toString();
+      } else if ((piece.color === 'Red' && dy < 0) || (piece.color === 'Black' && dy > 0)) {
+        action = '进';
+        target = targetColNum.toString();
+      } else {
+        action = '退';
+        target = targetColNum.toString();
+      }
+    }
+    
+    return `${pieceName}${colNum}${action}${target}`;
+  };
+
   const addMoveToHistory = (fromX: number, fromY: number, toX: number, toY: number) => {
-    const moveStr = `(${fromX},${fromY}) → (${toX},${toY})`;
-    setMoveHistory(prev => [...prev, moveStr]);
+    const moveStr = convertMoveToNotation(fromX, fromY, toX, toY);
+    if (moveStr) {
+      setMoveHistory(prev => [...prev, moveStr]);
+    }
   };
 
   if (!gameState) {
