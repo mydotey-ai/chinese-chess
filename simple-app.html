@@ -1,0 +1,302 @@
+// simple-app.html
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 6px;
+        }
+        
+        .test-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        .test-button:hover {
+            background-color: #0056b3;
+        }
+        
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        pre {
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            font-size: 1.2rem;
+            color: #666;
+        }
+        
+        .game-container {
+            display: none;
+            margin-top: 20px;
+        }
+        
+        .board {
+            display: grid;
+            grid-template-columns: repeat(9, 40px);
+            grid-template-rows: repeat(10, 40px);
+            gap: 2px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background-color: #f0f0f0;
+        }
+        
+        .cell {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: white;
+            border: 1px solid #eee;
+            cursor: pointer;
+        }
+        
+        .cell:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .piece {
+            font-size: 24px;
+        }
+        
+        .red {
+            color: #d9534f;
+        }
+        
+        .black {
+            color: #232323;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>中国象棋应用程序测试</h1>
+        
+        <!-- 加载状态 -->
+        <div id="loading" class="loading">
+            Loading...
+        </div>
+        
+        <!-- 游戏状态 -->
+        <div id="game-container" class="game-container">
+            <h2>游戏状态</h2>
+            <div id="game-info" class="info"></div>
+            
+            <h2>棋盘</h2>
+            <div id="board" class="board"></div>
+            
+            <h2>操作</h2>
+            <button id="new-game" class="test-button">新游戏</button>
+            <button id="undo-move" class="test-button">悔棋</button>
+            <button id="get-state" class="test-button">获取游戏状态</button>
+            
+            <div id="logs" style="margin-top: 20px;">
+                <h2>日志</h2>
+                <pre id="log-content"></pre>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 简单的模拟函数
+        function logMessage(message, type = 'info') {
+            const logContainer = document.getElementById('log-content');
+            const timestamp = new Date().toISOString();
+            logContainer.textContent += `[${timestamp}] ${message}\n`;
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        function showLoading() {
+            document.getElementById('loading').style.display = 'flex';
+            document.getElementById('game-container').style.display = 'none';
+        }
+        
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('game-container').style.display = 'block';
+        }
+        
+        // 模拟命令
+        async function mockInvoke(command, args = {}) {
+            logMessage(`调用命令: ${command} ${JSON.stringify(args)}`);
+            
+            // 模拟网络延迟
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            if (command === 'new_game') {
+                logMessage('命令成功返回');
+                return {
+                    board: {
+                        cells: Array(10).fill(null).map(() => Array(9).fill(null))
+                    },
+                    current_turn: 'Red',
+                    is_in_check: false,
+                    is_ended: false,
+                    winner: null
+                };
+            } else {
+                throw new Error(`命令 ${command} 未实现`);
+            }
+        }
+        
+        // 初始化应用程序
+        async function initGame() {
+            showLoading();
+            logMessage('正在初始化游戏...');
+            
+            try {
+                const state = await mockInvoke('new_game');
+                logMessage(`初始化成功: ${JSON.stringify(state)}`);
+                
+                hideLoading();
+                displayGameState(state);
+            } catch (error) {
+                logMessage(`错误: ${error.message}`, 'error');
+                console.error('详细错误:', error);
+                
+                // 即使有错误，也显示一个简单的游戏状态
+                hideLoading();
+                displayGameState({
+                    board: {
+                        cells: Array(10).fill(null).map(() => Array(9).fill(null))
+                    },
+                    current_turn: 'Red',
+                    is_in_check: false,
+                    is_ended: false,
+                    winner: null
+                });
+            }
+        }
+        
+        function displayGameState(state) {
+            const infoDiv = document.getElementById('game-info');
+            infoDiv.innerHTML = `
+                <strong>当前回合:</strong> ${state.current_turn}<br>
+                <strong>是否将军:</strong> ${state.is_in_check ? '是' : '否'}<br>
+                <strong>游戏结束:</strong> ${state.is_ended ? '是' : '否'}<br>
+                ${state.is_ended && state.winner ? `<strong>获胜方:</strong> ${state.winner}` : ''}
+            `;
+            
+            const boardDiv = document.getElementById('board');
+            boardDiv.innerHTML = '';
+            
+            state.board.cells.forEach((row, y) => {
+                row.forEach((cell, x) => {
+                    const cellDiv = document.createElement('div');
+                    cellDiv.className = 'cell';
+                    cellDiv.dataset.x = x;
+                    cellDiv.dataset.y = y;
+                    
+                    if (cell) {
+                        const pieceDiv = document.createElement('div');
+                        pieceDiv.className = `piece ${cell.color.toLowerCase()}`;
+                        // 简单的棋子字符
+                        const pieceChars = {
+                            'General': '将',
+                            'Advisor': '士',
+                            'Elephant': '象',
+                            'Horse': '马',
+                            'Chariot': '车',
+                            'Cannon': '炮',
+                            'Soldier': '卒'
+                        };
+                        pieceDiv.textContent = pieceChars[cell.piece_type] || cell.piece_type;
+                        cellDiv.appendChild(pieceDiv);
+                    }
+                    
+                    cellDiv.addEventListener('click', () => handleCellClick(x, y));
+                    boardDiv.appendChild(cellDiv);
+                });
+            });
+        }
+        
+        function handleCellClick(x, y) {
+            logMessage(`点击格子: (${x}, ${y})`);
+        }
+        
+        // 事件监听器
+        document.getElementById('new-game').addEventListener('click', initGame);
+        document.getElementById('undo-move').addEventListener('click', () => {
+            logMessage('点击悔棋按钮');
+        });
+        document.getElementById('get-state').addEventListener('click', () => {
+            logMessage('点击获取游戏状态按钮');
+        });
+        
+        // 页面加载时初始化
+        window.addEventListener('DOMContentLoaded', () => {
+            logMessage('页面加载完成');
+            initGame();
+        });
+        
+        // 显示网络连接状态
+        window.addEventListener('online', () => logMessage('网络连接恢复'));
+        window.addEventListener('offline', () => logMessage('网络连接断开', 'error'));
+    </script>
+</body>
+</html>

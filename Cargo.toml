@@ -4,10 +4,23 @@ version = "0.1.0"
 edition = "2021"
 description = "A Chinese Chess (Xiangqi) game implementation in Rust"
 license = "Apache-2.0"
-repository = "https://github.com/koqizhao/chinese-chess"
+repository = "https://github.com/mydotey-ai/chinese-chess"
+default-run = "chinese-chess"
+
+[[bin]]
+name = "chinese-chess"
+path = "src/main.rs"
+
+[[bin]]
+name = "chinese-chess-cli"
+path = "src/cli.rs"
 
 [dependencies]
 clap = { version = "4.0", features = ["derive"] }
 colored = "2.0"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+tauri = { version = "2.9.5", features = ["default"] }
+tauri-macros = "2.5.2"
 
 [dev-dependencies]

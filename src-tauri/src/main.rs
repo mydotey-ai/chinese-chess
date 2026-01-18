@@ -1,5 +1,5 @@
-use chinese_chess::game::GameStateManager;
 use tauri::Builder;
+use chinese_chess::game::GameStateManager;
 
 fn main() {
     Builder::default()

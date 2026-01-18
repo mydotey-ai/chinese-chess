@@ -1,0 +1,31 @@
+{
+  "name": "frontend",
+  "version": "1.0.0",
+  "description": "Chinese Chess (Xiangqi) desktop game frontend",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "tauri:dev": "cd .. && npx tauri dev",
+    "tauri:build": "cd .. && npx tauri build"
+  },
+  "keywords": [
+    "chinese-chess",
+    "xiangqi",
+    "tauri",
+    "rust"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@tauri-apps/api": "^1.6.0",
+    "@types/react": "^19.2.8",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.2",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1"
+  }
+}

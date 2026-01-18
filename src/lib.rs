@@ -1,15 +1,36 @@
-pub mod board {
-    pub mod coordinate;
-    pub mod square;
-    pub use modl::Board;
-    pub mod modl;
+pub mod board;
+pub mod game;
+pub mod history;
+pub mod piece;
+pub mod rules;
+pub mod tauri_commands;
+pub mod validator;
+
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChessError {
+    InvalidMove,
+    OutOfBoard,
+    NotYourPiece,
+    CannotCaptureOwnPiece,
+    InCheck,
+    NoHistory,
+    GameEnded,
 }
 
-pub mod pieces;
-
-pub mod game {
-    pub mod rules;
-    pub mod state;
-    pub use modl::Game;
-    pub mod modl;
+impl std::fmt::Display for ChessError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ChessError::InvalidMove => write!(f, "Invalid move"),
+            ChessError::OutOfBoard => write!(f, "Position out of board"),
+            ChessError::NotYourPiece => write!(f, "Not your piece"),
+            ChessError::CannotCaptureOwnPiece => write!(f, "Cannot capture your own piece"),
+            ChessError::InCheck => write!(f, "You are in check"),
+            ChessError::NoHistory => write!(f, "No move history"),
+            ChessError::GameEnded => write!(f, "Game has ended"),
+        }
+    }
 }
+
+impl std::error::Error for ChessError {}

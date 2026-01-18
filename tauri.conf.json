@@ -1,0 +1,39 @@
+{
+  "$schema": "https://tauri.app/schemas/config-schema.json",
+  "version": "0.1.0",
+  "identifier": "com.example.chinesechess",
+  "productName": "ChineseChess",
+  "build": {
+    "beforeBuildCommand": "cd frontend && npm run build",
+    "beforeDevCommand": "cd frontend && npm run dev",
+    "devUrl": "http://localhost:5173",
+    "frontendDist": "./frontend/dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Chinese Chess",
+        "width": 1000,
+        "height": 800,
+        "visible": true,
+        "center": true,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "category": "Game",
+    "shortDescription": "Chinese Chess",
+    "longDescription": "A Chinese Chess (Xiangqi) desktop application built with Rust and Tauri",
+    "icon": [
+      "icons/icon.svg",
+      "icons/32x32.png",
+      "icons/128x128.png"
+    ]
+  }
+
+}

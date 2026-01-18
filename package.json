@@ -1,0 +1,18 @@
+{
+  "name": "chinese-chess",
+  "version": "0.1.0",
+  "description": "A Chinese Chess (Xiangqi) desktop game built with Rust and Tauri",
+  "scripts": {
+    "dev": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "preview": "cd frontend && npm run preview",
+    "tauri:dev": "npx tauri dev",
+    "tauri:build": "npx tauri build"
+  },
+  "keywords": ["chinese-chess", "xiangqi", "tauri", "rust"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@tauri-apps/cli": "^1.6.0"
+  }
+}

@@ -1,0 +1,26 @@
+[package]
+name = "chinese-chess"
+version = "0.1.0"
+description = "A Chinese Chess (Xiangqi) desktop game built with Rust and Tauri"
+authors = []
+repository = ""
+
+[build]
+beforeBuildCommand = "cd frontend && npm run build"
+beforeDevCommand = "cd frontend && npm run dev"
+devUrl = "http://localhost:5173"
+frontendDist = "frontend/dist"
+
+[app]
+windows = [
+    {
+        title = "Chinese Chess",
+        width = 1000,
+        height = 800
+    }
+]
+
+[tauri]
+bundle = { active = true, category = "Game", shortDescription = "Chinese Chess Game" }
+allowlist = { all = false }
+security = { csp = null }
