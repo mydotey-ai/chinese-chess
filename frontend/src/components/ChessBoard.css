@@ -1,51 +1,65 @@
 .chess-board {
-  display: inline-block;
-  border: 3px solid #8b4513;
+  position: relative;
+  width: 400px;
+  height: 450px;
   background-color: #deb887;
+  border: 3px solid #8b4513;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+  margin: 20px auto;
 }
 
-.board-row {
-  display: flex;
+.board-lines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
 }
 
-.board-cell {
-  width: 50px;
-  height: 50px;
+.pieces-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.piece-container {
+  position: absolute;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #654321;
-  position: relative;
   cursor: pointer;
   transition: all 0.2s ease;
+  border-radius: 50%;
+  z-index: 1;
 }
 
-.board-cell:hover {
-  background-color: #d2b48c;
+.piece-container:hover {
+  background-color: rgba(255, 255, 153, 0.6);
 }
 
-.board-cell.selected {
-  background-color: #ffff99 !important;
-  border-color: #ffd700 !important;
-  box-shadow: inset 0 0 10px rgba(255, 215, 0, 0.5);
+.piece-container.selected {
+  background-color: rgba(255, 215, 0, 0.7);
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
 }
 
-.board-cell.valid-move {
-  background-color: #90ee90;
+.piece-container.valid-move {
+  background-color: rgba(0, 255, 0, 0.3);
 }
 
-.board-cell.valid-move::after {
+.piece-container.valid-move::after {
   content: '';
   position: absolute;
   width: 20px;
   height: 20px;
-  background-color: rgba(0, 255, 0, 0.3);
+  background-color: rgba(0, 255, 0, 0.5);
   border-radius: 50%;
 }
 
 .piece {
-  font-size: 2.5rem;
+  font-size: 2rem;
   font-weight: bold;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
   cursor: grab;
