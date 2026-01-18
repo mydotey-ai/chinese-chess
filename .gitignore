@@ -28,3 +28,18 @@ target
 
 /target
 node_modules/
+
+# Frontend build artifacts
+frontend/dist/
+
+# Test files
+test-*.html
+test-*.js
+simple-server.js
+verify-*.js
+
+# Test binaries
+src/bin/
+
+# Screenshots
+*.png
