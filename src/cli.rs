@@ -81,7 +81,9 @@ fn main() {
     }
 }
 
-fn parse_coordinates(from: &str, to: &str) -> (Option<(usize, usize)>, Option<(usize, usize)>) {
+type Coordinate = (usize, usize);
+
+fn parse_coordinates(from: &str, to: &str) -> (Option<Coordinate>, Option<Coordinate>) {
     let parse = |s: &str| {
         let parts: Vec<&str> = s.split(',').collect();
         if parts.len() == 2 {

@@ -36,3 +36,9 @@ impl History {
         self.moves.is_empty()
     }
 }
+
+impl Default for History {
+    fn default() -> Self {
+        Self::new()
+    }
+}

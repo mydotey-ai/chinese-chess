@@ -111,8 +111,8 @@ fn validate_elephant_move(
 
     if two_steps_diagonal && !crosses_river {
         // Check if eye is blocked
-        let eye_x = (from_x + to_x) / 2;
-        let eye_y = (from_y + to_y) / 2;
+        let _eye_x = (from_x + to_x) / 2;
+        let _eye_y = (from_y + to_y) / 2;
         Ok(()) // TODO: Check if eye is blocked
     } else {
         Err(crate::ChessError::InvalidMove)
@@ -230,10 +230,11 @@ fn validate_cannon_move(
 
         let to_piece = board.get_piece(to_x, to_y);
 
-        if to_piece.is_none() && pieces_in_path == 0 {
-            Ok(()) // Move without capture
-        } else if to_piece.is_some() && pieces_in_path == 1 {
-            Ok(()) // Capture
+        let valid_move = (to_piece.is_none() && pieces_in_path == 0)
+            || (to_piece.is_some() && pieces_in_path == 1);
+
+        if valid_move {
+            Ok(())
         } else {
             Err(crate::ChessError::InvalidMove)
         }
@@ -263,12 +264,9 @@ fn validate_soldier_move(
         Color::Black => from_y <= 4,
     };
 
-    // Forward move
-    if dx == 0 && dy == 1 && forward {
-        Ok(())
-    }
-    // Sideways move after crossing river
-    else if crossed_river && dy == 0 && dx == 1 {
+    let valid_move = (dx == 0 && dy == 1 && forward) || (crossed_river && dy == 0 && dx == 1);
+
+    if valid_move {
         Ok(())
     } else {
         Err(crate::ChessError::InvalidMove)

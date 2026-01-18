@@ -71,6 +71,12 @@ impl GameState {
     }
 }
 
+impl Default for GameState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct GameStateManager {
     pub state: GameState,
@@ -202,8 +208,8 @@ impl GameStateManager {
             for x in 0..9 {
                 for y in 0..10 {
                     if let Some(piece) = self.state.board.get_piece(x, y) {
-                        if piece.color == opponent_color {
-                            if MoveValidator::validate(
+                        if piece.color == opponent_color
+                            && MoveValidator::validate(
                                 &self.state.board,
                                 x,
                                 y,
@@ -212,9 +218,8 @@ impl GameStateManager {
                                 opponent_color,
                             )
                             .is_ok()
-                            {
-                                return true;
-                            }
+                        {
+                            return true;
                         }
                     }
                 }
@@ -267,5 +272,11 @@ impl GameStateManager {
         }
 
         true
+    }
+}
+
+impl Default for GameStateManager {
+    fn default() -> Self {
+        Self::new()
     }
 }

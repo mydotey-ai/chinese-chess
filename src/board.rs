@@ -41,3 +41,9 @@ impl Board {
         captured
     }
 }
+
+impl Default for Board {
+    fn default() -> Self {
+        Self::new()
+    }
+}
