@@ -81,14 +81,22 @@ const App: React.FC = () => {
       if (gameState) {
         const newBoard = JSON.parse(JSON.stringify(gameState.board));
         const piece = newBoard.cells[fromY][fromX];
+        const capturedPiece = newBoard.cells[toY][toX];
+        
         newBoard.cells[fromY][fromX] = null;
         newBoard.cells[toY][toX] = piece;
+        
+        // 检查是否吃掉了对方的将/帅
+        const isGameEnded = capturedPiece && capturedPiece.piece_type === 'General';
         
         setGameState({
           ...gameState,
           board: newBoard,
-          current_turn: gameState.current_turn === 'Red' ? 'Black' : 'Red'
+          current_turn: gameState.current_turn === 'Red' ? 'Black' : 'Red',
+          is_ended: isGameEnded,
+          winner: isGameEnded ? gameState.current_turn : null
         });
+        
         addMoveToHistory(fromX, fromY, toX, toY);
       }
     }
@@ -189,7 +197,6 @@ const App: React.FC = () => {
     const pieceName = getPieceName(piece);
     
     const colNum = piece.color === 'Red' ? (9 - fromX) : (fromX + 1);
-    const rowNum = piece.color === 'Red' ? (10 - fromY) : (fromY + 1);
     
     const dx = toX - fromX;
     const dy = toY - fromY;
@@ -203,7 +210,6 @@ const App: React.FC = () => {
         (dy < 0 ? '退' : '进');
       target = Math.abs(dy).toString();
     } else {
-      const horizontalDist = Math.abs(dx);
       const targetColNum = piece.color === 'Red' ? (9 - toX) : (toX + 1);
       
       if (dy === 0) {
@@ -251,6 +257,7 @@ const App: React.FC = () => {
             board={gameState.board}
             onPieceClick={handleGetValidMoves}
             onMove={handleMakeMove}
+            isEnded={gameState.is_ended} // 传递游戏结束状态
           />
           
           <ControlPanel

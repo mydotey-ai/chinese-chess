@@ -7,15 +7,29 @@ interface ChessBoardProps {
   onMove: (fromX: number, fromY: number, toX: number, toY: number) => void;
 }
 
+interface ChessBoardProps {
+  board: any;
+  onPieceClick: (x: number, y: number) => Promise<[number, number][]>;
+  onMove: (fromX: number, fromY: number, toX: number, toY: number) => void;
+  isEnded: boolean; // 新增属性
+}
+
 const ChessBoard: React.FC<ChessBoardProps> = ({ 
   board, 
   onPieceClick, 
-  onMove 
+  onMove,
+  isEnded
 }) => {
   const [selectedPiece, setSelectedPiece] = useState<[number, number] | null>(null);
   const [validMoves, setValidMoves] = useState<[number, number][]>([]);
 
   const handleSquareClick = async (x: number, y: number) => {
+    // 如果游戏已经结束，不允许任何操作
+    if (isEnded) {
+      console.log('游戏已结束，无法继续操作');
+      return;
+    }
+
     if (selectedPiece) {
       const [fromX, fromY] = selectedPiece;
       onMove(fromX, fromY, x, y);

@@ -124,6 +124,23 @@ impl GameStateManager {
         // Make move
         let captured_piece = self.state.board.move_piece(from_x, from_y, to_x, to_y);
 
+        // Check if captured the opponent's general (game ends immediately)
+        if let Some(piece) = captured_piece {
+            if piece.piece_type == PieceType::General {
+                self.state.is_ended = true;
+                self.state.winner = Some(self.state.current_turn);
+                // Record move
+                self.history.push(MoveRecord {
+                    from_x,
+                    from_y,
+                    to_x,
+                    to_y,
+                    captured_piece,
+                });
+                return Ok(());
+            }
+        }
+
         // Record move
         self.history.push(MoveRecord {
             from_x,
@@ -142,7 +159,7 @@ impl GameStateManager {
         // Check if in check
         self.state.is_in_check = self.is_in_check(self.state.current_turn);
 
-        // Check if game ended
+        // Check if game ended (checkmate)
         if self.is_checkmate(self.state.current_turn) {
             self.state.is_ended = true;
             self.state.winner = Some(match self.state.current_turn {
@@ -301,5 +318,56 @@ impl AsRef<GameState> for GameStateManager {
 impl AsMut<GameState> for GameStateManager {
     fn as_mut(&mut self) -> &mut GameState {
         &mut self.state
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::board::Board;
+    use crate::piece::{Color, Piece, PieceType};
+
+    #[test]
+    fn test_capture_general_ends_game() {
+        println!("=== 测试吃将结束游戏 ===\n");
+
+        // 创建一个简单的测试棋局
+        let mut board = Board::new();
+
+        // 在 (4, 0) 放置黑方将
+        board.set_piece(4, 0, Some(Piece::new(PieceType::General, Color::Black)));
+
+        // 在 (4, 1) 放置红方车
+        board.set_piece(4, 1, Some(Piece::new(PieceType::Chariot, Color::Red)));
+
+        // 创建游戏状态
+        let state = GameState {
+            board,
+            current_turn: Color::Red,
+            is_in_check: false,
+            is_ended: false,
+            winner: None,
+        };
+
+        let mut manager = GameStateManager {
+            state,
+            history: History::new(),
+        };
+
+        println!("初始状态: 红方回合，黑将在 (4,0)，红车在 (4,1)");
+
+        // 红方车吃掉黑方将
+        let result = manager.make_move(4, 1, 4, 0);
+        assert!(result.is_ok());
+
+        println!("移动成功后:");
+        println!("游戏是否结束: {}", manager.state.is_ended);
+        println!("胜利者: {:?}", manager.state.winner);
+
+        // 验证游戏是否结束并且红方获胜
+        assert!(manager.state.is_ended);
+        assert_eq!(manager.state.winner, Some(Color::Red));
+
+        println!("\n=== 测试成功！吃将后游戏立即结束 ===\n");
     }
 }
