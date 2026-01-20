@@ -41,7 +41,9 @@ pub fn validate_move(
     match from_piece.piece_type {
         PieceType::General => validate_general_move(from_x, from_y, to_x, to_y),
         PieceType::Advisor => validate_advisor_move(from_x, from_y, to_x, to_y),
-        PieceType::Elephant => validate_elephant_move(from_x, from_y, to_x, to_y, from_piece.color),
+        PieceType::Elephant => {
+            validate_elephant_move(board, from_x, from_y, to_x, to_y, from_piece.color)
+        }
         PieceType::Horse => validate_horse_move(board, from_x, from_y, to_x, to_y),
         PieceType::Chariot => validate_chariot_move(board, from_x, from_y, to_x, to_y),
         PieceType::Cannon => validate_cannon_move(board, from_x, from_y, to_x, to_y),
@@ -92,6 +94,7 @@ fn validate_advisor_move(
 }
 
 fn validate_elephant_move(
+    board: &Board,
     from_x: usize,
     from_y: usize,
     to_x: usize,
@@ -105,15 +108,19 @@ fn validate_elephant_move(
 
     // Check if crossing river
     let crosses_river = match color {
-        Color::Red => to_y >= 5,
-        Color::Black => to_y <= 4,
+        Color::Red => to_y <= 4,   // 红方象不能过河到 y <= 4（黑方半场）
+        Color::Black => to_y >= 5, // 黑方象不能过河到 y >= 5（红方半场）
     };
 
     if two_steps_diagonal && !crosses_river {
         // Check if eye is blocked
-        let _eye_x = (from_x + to_x) / 2;
-        let _eye_y = (from_y + to_y) / 2;
-        Ok(()) // TODO: Check if eye is blocked
+        let eye_x = (from_x + to_x) / 2;
+        let eye_y = (from_y + to_y) / 2;
+        if board.get_piece(eye_x, eye_y).is_none() {
+            Ok(())
+        } else {
+            Err(crate::ChessError::InvalidMove)
+        }
     } else {
         Err(crate::ChessError::InvalidMove)
     }
