@@ -89,7 +89,8 @@ const ChessBoard: React.FC<ChessBoardProps> = ({
 
   return (
     <div className="chess-board">
-      <svg className="board-lines" width="400" height="450" viewBox="0 0 400 450">
+      <div className="board-background"></div>
+      <svg className="board-lines" width="403" height="453" viewBox="0 0 403 453">
         {/* Horizontal lines - 10 lines (y=0 to y=9, step 50) */}
         {[...Array(10)].map((_, y) => (
           <line
@@ -98,16 +99,16 @@ const ChessBoard: React.FC<ChessBoardProps> = ({
             y1={y * 50}
             x2="400"
             y2={y * 50}
-            stroke="#000"
+            stroke="#000000"
             strokeWidth="1"
           />
         ))}
 
         {/* Left vertical border (full height) */}
-        <line x1="0" y1="0" x2="0" y2="450" stroke="#000" strokeWidth="1" />
+        <line x1="0" y1="0" x2="0" y2="450" stroke="#000000" strokeWidth="1" />
 
         {/* Right vertical border (full height) */}
-        <line x1="400" y1="0" x2="400" y2="450" stroke="#000" strokeWidth="1" />
+        <line x1="400" y1="0" x2="400" y2="450" stroke="#000000" strokeWidth="1" />
 
         {/* Inner vertical lines - upper half (x=50 to x=350, y=0 to y=200) */}
         {[...Array(7)].map((_, i) => (
