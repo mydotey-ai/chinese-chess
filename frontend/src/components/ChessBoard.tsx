@@ -26,15 +26,21 @@ const ChessBoard: React.FC<ChessBoardProps> = ({
   const handleSquareClick = async (x: number, y: number) => {
     // 如果游戏已经结束，不允许任何操作
     if (isEnded) {
-      console.log('游戏已结束，无法继续操作');
       return;
     }
 
     if (selectedPiece) {
       const [fromX, fromY] = selectedPiece;
-      onMove(fromX, fromY, x, y);
-      setSelectedPiece(null);
-      setValidMoves([]);
+      // 只有在目标位置是有效的移动位置时才执行移动
+      if (isValidMove(x, y)) {
+        onMove(fromX, fromY, x, y);
+        setSelectedPiece(null);
+        setValidMoves([]);
+      } else {
+        // 如果点击了无效位置，取消选择
+        setSelectedPiece(null);
+        setValidMoves([]);
+      }
       return;
     }
 
