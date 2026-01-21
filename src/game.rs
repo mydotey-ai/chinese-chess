@@ -121,6 +121,13 @@ impl GameStateManager {
             self.state.current_turn,
         )?;
 
+        // Get the piece being moved
+        let piece = self
+            .state
+            .board
+            .get_piece(from_x, from_y)
+            .ok_or(crate::ChessError::InvalidMove)?;
+
         // Make move
         let captured_piece = self.state.board.move_piece(from_x, from_y, to_x, to_y);
 
@@ -136,6 +143,7 @@ impl GameStateManager {
                         from_y,
                         to_x,
                         to_y,
+                        piece,
                         captured_piece,
                     },
                     self.state.current_turn,
@@ -151,6 +159,7 @@ impl GameStateManager {
                 from_y,
                 to_x,
                 to_y,
+                piece,
                 captured_piece,
             },
             self.state.current_turn,

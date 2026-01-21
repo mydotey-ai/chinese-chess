@@ -7,7 +7,7 @@ pub struct MoveRecord {
     pub from_y: usize,
     pub to_x: usize,
     pub to_y: usize,
-    pub piece: Piece,
+    pub piece: Piece, // Add piece information for notation conversion
     pub captured_piece: Option<Piece>,
 }
 
@@ -61,7 +61,7 @@ impl History {
                         from_y: 0,
                         to_x: 0,
                         to_y: 0,
-                        piece: Piece::new(PieceType::General, Color::Red),
+                        piece: Piece::new(PieceType::General, Color::Red), // Dummy piece for incomplete round
                         captured_piece: None,
                     },
                     black_move: Some(move_record),
@@ -136,7 +136,7 @@ mod tests {
             from_y: 0,
             to_x: 1,
             to_y: 1,
-            piece: Piece::new(PieceType::Chariot, Color::Red),
+            piece: Piece::new(PieceType::General, Color::Red),
             captured_piece: None,
         };
 
@@ -145,7 +145,7 @@ mod tests {
             from_y: 9,
             to_x: 7,
             to_y: 8,
-            piece: Piece::new(PieceType::Chariot, Color::Black),
+            piece: Piece::new(PieceType::General, Color::Black),
             captured_piece: None,
         });
 
@@ -188,7 +188,6 @@ mod tests {
             from_y: 0,
             to_x: 1,
             to_y: 1,
-            piece: Piece::new(PieceType::Chariot, Color::Red),
             captured_piece: None,
         };
 
@@ -216,7 +215,6 @@ mod tests {
             from_y: 2,
             to_x: 3,
             to_y: 4,
-            piece: Piece::new(PieceType::Chariot, Color::Red),
             captured_piece: None,
         };
 
@@ -240,16 +238,12 @@ mod tests {
             from_y: 0,
             to_x: 1,
             to_y: 1,
-            piece: Piece::new(PieceType::Chariot, Color::Red),
             captured_piece: None,
         };
 
-        history.push_with_color(move_record.clone(), Color::Red);
         history.push_with_color(move_record, Color::Red);
         assert!(!history.is_empty());
 
-        history.pop();
-        assert!(!history.is_empty());
         history.pop();
         assert!(history.is_empty());
     }
@@ -264,7 +258,6 @@ mod tests {
             from_y: 0,
             to_x: 1,
             to_y: 1,
-            piece: Piece::new(PieceType::Chariot, Color::Red),
             captured_piece: None,
         };
 
@@ -287,7 +280,6 @@ mod tests {
                 from_y: 0,
                 to_x: 1,
                 to_y: 1,
-                piece: Piece::new(PieceType::Chariot, Color::Red),
                 captured_piece: None,
             },
             black_move: Some(MoveRecord {
@@ -295,7 +287,6 @@ mod tests {
                 from_y: 9,
                 to_x: 7,
                 to_y: 8,
-                piece: Piece::new(PieceType::Chariot, Color::Black),
                 captured_piece: None,
             }),
         };
@@ -315,7 +306,6 @@ mod tests {
             from_y: 0,
             to_x: 1,
             to_y: 1,
-            piece: Piece::new(PieceType::Chariot, Color::Red),
             captured_piece: None,
         };
 
@@ -337,7 +327,6 @@ mod tests {
             from_y: 0,
             to_x: 1,
             to_y: 1,
-            piece: Piece::new(PieceType::Chariot, Color::Red),
             captured_piece: None,
         };
 
@@ -346,7 +335,6 @@ mod tests {
             from_y: 9,
             to_x: 7,
             to_y: 8,
-            piece: Piece::new(PieceType::Chariot, Color::Black),
             captured_piece: None,
         };
 
@@ -371,7 +359,6 @@ mod tests {
             from_y: 1,
             to_x: 2,
             to_y: 2,
-            piece: Piece::new(PieceType::Chariot, Color::Red),
             captured_piece: None,
         };
         history.push_with_color(red_move2.clone(), Color::Red);
@@ -391,7 +378,6 @@ mod tests {
             from_y: 0,
             to_x: 1,
             to_y: 1,
-            piece: Piece::new(PieceType::Chariot, Color::Red),
             captured_piece: None,
         };
 
@@ -400,7 +386,6 @@ mod tests {
             from_y: 9,
             to_x: 7,
             to_y: 8,
-            piece: Piece::new(PieceType::Chariot, Color::Black),
             captured_piece: None,
         };
 
@@ -439,7 +424,6 @@ mod tests {
             from_y: 0,
             to_x: 1,
             to_y: 1,
-            piece: Piece::new(PieceType::Chariot, Color::Red),
             captured_piece: None,
         };
 
@@ -466,7 +450,6 @@ mod tests {
             from_y: 9,
             to_x: 7,
             to_y: 8,
-            piece: Piece::new(PieceType::Chariot, Color::Black),
             captured_piece: None,
         };
 
@@ -484,7 +467,6 @@ mod tests {
             from_y: 0,
             to_x: 1,
             to_y: 1,
-            piece: Piece::new(PieceType::Chariot, Color::Red),
             captured_piece: None,
         };
         history.push_with_color(red_move.clone(), Color::Red);

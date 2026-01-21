@@ -33,7 +33,14 @@ interface MoveRecord {
   from_y: number;
   to_x: number;
   to_y: number;
-  captured_piece: any | null;
+  piece: {
+    piece_type: string;
+    color: 'Red' | 'Black';
+  } | null;
+  captured_piece: {
+    piece_type: string;
+    color: 'Red' | 'Black';
+  } | null;
 }
 
 const App: React.FC = () => {
@@ -185,13 +192,16 @@ const App: React.FC = () => {
   };
 
   const convertMoveRecordToNotation = (move: MoveRecord): string => {
-    if (!gameState) return '';
+    if (!move.piece) {
+      // Fallback: try to get piece from current board state (old behavior)
+      if (!gameState) return '';
+      const piece = gameState.game_state.board.cells[move.from_y][move.from_x];
+      if (!piece) return '';
+      return getPieceName(piece) + '?'; // Add question mark to indicate potential inaccuracy
+    }
     
-    const piece = gameState.game_state.board.cells[move.from_y][move.from_x];
-    if (!piece) return '';
-    
-    const pieceName = getPieceName(piece);
-    const colNum = piece.color === 'Red' ? (9 - move.from_x) : (move.from_x + 1);
+    const pieceName = getPieceName(move.piece);
+    const colNum = move.piece.color === 'Red' ? (9 - move.from_x) : (move.from_x + 1);
     
     const dx = move.to_x - move.from_x;
     const dy = move.to_y - move.from_y;
@@ -200,17 +210,17 @@ const App: React.FC = () => {
     let target: string;
     
     if (dx === 0) {
-      action = piece.color === 'Red' ? 
+      action = move.piece.color === 'Red' ? 
         (dy > 0 ? '退' : '进') : 
         (dy < 0 ? '退' : '进');
       target = Math.abs(dy).toString();
     } else {
-      const targetColNum = piece.color === 'Red' ? (9 - move.to_x) : (move.to_x + 1);
+      const targetColNum = move.piece.color === 'Red' ? (9 - move.to_x) : (move.to_x + 1);
       
       if (dy === 0) {
         action = '平';
         target = targetColNum.toString();
-      } else if ((piece.color === 'Red' && dy < 0) || (piece.color === 'Black' && dy > 0)) {
+      } else if ((move.piece.color === 'Red' && dy < 0) || (move.piece.color === 'Black' && dy > 0)) {
         action = '进';
         target = targetColNum.toString();
       } else {
