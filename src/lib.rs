@@ -1,5 +1,6 @@
 pub mod board;
 pub mod game;
+pub mod game_with_history;
 pub mod history;
 pub mod piece;
 pub mod rules;
