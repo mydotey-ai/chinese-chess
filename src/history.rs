@@ -1,4 +1,4 @@
-use crate::piece::Piece;
+use crate::piece::{Color, Piece};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -11,38 +11,465 @@ pub struct MoveRecord {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RoundRecord {
+    pub round_number: usize,
+    pub red_move: MoveRecord,
+    pub black_move: Option<MoveRecord>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct History {
-    pub moves: Vec<MoveRecord>,
+    pub rounds: Vec<RoundRecord>,
 }
 
 impl History {
     pub fn new() -> Self {
-        Self { moves: Vec::new() }
+        Self { rounds: Vec::new() }
     }
 
     pub fn push(&mut self, move_record: MoveRecord) {
-        self.moves.push(move_record);
+        // Backward compatible method - assumes all moves are red moves
+        self.push_with_color(move_record, Color::Red);
     }
 
-    pub fn pop(&mut self) -> Option<MoveRecord> {
-        self.moves.pop()
+    pub fn push_with_color(&mut self, move_record: MoveRecord, player_color: Color) {
+        match player_color {
+            Color::Red => {
+                // Red move always starts a new round
+                let round = RoundRecord {
+                    round_number: self.rounds.len() + 1,
+                    red_move: move_record,
+                    black_move: None,
+                };
+                self.rounds.push(round);
+            }
+            Color::Black => {
+                // Black move should be added to the last round if it exists and doesn't have a black move yet
+                if let Some(last_round) = self.rounds.last_mut() {
+                    if last_round.black_move.is_none() {
+                        last_round.black_move = Some(move_record);
+                        return;
+                    }
+                }
+                // If no round exists or last round already has black move, create a new incomplete round
+                // This is an edge case - black shouldn't move first, but we handle it gracefully
+                let round = RoundRecord {
+                    round_number: self.rounds.len() + 1,
+                    red_move: MoveRecord {
+                        from_x: 0,
+                        from_y: 0,
+                        to_x: 0,
+                        to_y: 0,
+                        captured_piece: None,
+                    },
+                    black_move: Some(move_record),
+                };
+                self.rounds.push(round);
+            }
+        }
     }
 
-    pub fn peek(&self) -> Option<&MoveRecord> {
-        self.moves.last()
+    pub fn pop(&mut self) -> Option<(MoveRecord, Color)> {
+        if let Some(last_round) = self.rounds.last_mut() {
+            // If black move exists in last round, remove and return it
+            if let Some(black_move) = last_round.black_move.take() {
+                return Some((black_move, Color::Black));
+            }
+        }
+
+        // If no black move or no round exists, remove the last round and return red move
+        self.rounds.pop().map(|round| (round.red_move, Color::Red))
+    }
+
+    pub fn peek(&self) -> Option<(&MoveRecord, Color)> {
+        self.rounds.last().map(|round| {
+            if let Some(black_move) = &round.black_move {
+                (black_move, Color::Black)
+            } else {
+                (&round.red_move, Color::Red)
+            }
+        })
     }
 
     pub fn is_empty(&self) -> bool {
-        self.moves.is_empty()
+        self.rounds.is_empty()
     }
 
     pub fn clear(&mut self) {
-        self.moves.clear();
+        self.rounds.clear();
+    }
+
+    pub fn len(&self) -> usize {
+        self.rounds.len()
+    }
+
+    pub fn get_round(&self, index: usize) -> Option<&RoundRecord> {
+        self.rounds.get(index)
+    }
+
+    pub fn last_round(&self) -> Option<&RoundRecord> {
+        self.rounds.last()
+    }
+
+    pub fn last_round_mut(&mut self) -> Option<&mut RoundRecord> {
+        self.rounds.last_mut()
     }
 }
 
 impl Default for History {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_round_record_structure() {
+        // Test that we can create a RoundRecord
+        let red_move = MoveRecord {
+            from_x: 0,
+            from_y: 0,
+            to_x: 1,
+            to_y: 1,
+            captured_piece: None,
+        };
+
+        let black_move = Some(MoveRecord {
+            from_x: 8,
+            from_y: 9,
+            to_x: 7,
+            to_y: 8,
+            captured_piece: None,
+        });
+
+        // This should fail because RoundRecord doesn't exist yet
+        let round = RoundRecord {
+            round_number: 1,
+            red_move,
+            black_move,
+        };
+
+        assert_eq!(round.round_number, 1);
+        assert_eq!(round.red_move.from_x, 0);
+        assert_eq!(round.black_move.unwrap().from_x, 8);
+    }
+
+    #[test]
+    fn test_history_with_rounds() {
+        // Test that History uses rounds instead of moves
+        let history = History {
+            rounds: vec![], // This should fail because History has moves, not rounds
+        };
+
+        assert_eq!(history.rounds.len(), 0);
+    }
+
+    #[test]
+    fn test_history_new_method() {
+        // Test that History::new() creates empty rounds
+        let history = History::new();
+        assert_eq!(history.rounds.len(), 0);
+    }
+
+    #[test]
+    fn test_history_push_and_pop() {
+        // Test basic push and pop functionality
+        let mut history = History::new();
+
+        let move_record = MoveRecord {
+            from_x: 0,
+            from_y: 0,
+            to_x: 1,
+            to_y: 1,
+            captured_piece: None,
+        };
+
+        history.push_with_color(move_record.clone(), Color::Red);
+        assert_eq!(history.rounds.len(), 1);
+        assert_eq!(history.rounds[0].round_number, 1);
+        assert_eq!(history.rounds[0].red_move.from_x, 0);
+        assert_eq!(history.rounds[0].black_move, None);
+
+        let (popped, color) = history.pop().unwrap();
+        assert_eq!(popped.from_x, 0);
+        assert_eq!(color, Color::Red);
+        assert_eq!(history.rounds.len(), 0);
+    }
+
+    #[test]
+    fn test_history_peek() {
+        // Test peek functionality
+        let mut history = History::new();
+
+        assert_eq!(history.peek(), None);
+
+        let move_record = MoveRecord {
+            from_x: 1,
+            from_y: 2,
+            to_x: 3,
+            to_y: 4,
+            captured_piece: None,
+        };
+
+        history.push_with_color(move_record.clone(), Color::Red);
+
+        let (peeked, color) = history.peek().unwrap();
+        assert_eq!(peeked.from_x, 1);
+        assert_eq!(peeked.from_y, 2);
+        assert_eq!(color, Color::Red);
+        assert_eq!(history.rounds.len(), 1); // peek shouldn't remove
+    }
+
+    #[test]
+    fn test_history_is_empty() {
+        // Test is_empty functionality
+        let mut history = History::new();
+        assert!(history.is_empty());
+
+        let move_record = MoveRecord {
+            from_x: 0,
+            from_y: 0,
+            to_x: 1,
+            to_y: 1,
+            captured_piece: None,
+        };
+
+        history.push_with_color(move_record, Color::Red);
+        assert!(!history.is_empty());
+
+        history.pop();
+        assert!(history.is_empty());
+    }
+
+    #[test]
+    fn test_history_clear() {
+        // Test clear functionality
+        let mut history = History::new();
+
+        let move_record = MoveRecord {
+            from_x: 0,
+            from_y: 0,
+            to_x: 1,
+            to_y: 1,
+            captured_piece: None,
+        };
+
+        history.push_with_color(move_record.clone(), Color::Red);
+        history.push_with_color(move_record, Color::Red);
+
+        assert_eq!(history.rounds.len(), 2);
+        history.clear();
+        assert_eq!(history.rounds.len(), 0);
+        assert!(history.is_empty());
+    }
+
+    #[test]
+    fn test_round_record_serialization() {
+        // Test that RoundRecord can be serialized and deserialized
+        let round = RoundRecord {
+            round_number: 1,
+            red_move: MoveRecord {
+                from_x: 0,
+                from_y: 0,
+                to_x: 1,
+                to_y: 1,
+                captured_piece: None,
+            },
+            black_move: Some(MoveRecord {
+                from_x: 8,
+                from_y: 9,
+                to_x: 7,
+                to_y: 8,
+                captured_piece: None,
+            }),
+        };
+
+        // Just verify it compiles with serde derives
+        let json = serde_json::to_string(&round);
+        assert!(json.is_ok());
+    }
+
+    #[test]
+    fn test_history_serialization() {
+        // Test that History can be serialized and deserialized
+        let mut history = History::new();
+
+        let move_record = MoveRecord {
+            from_x: 0,
+            from_y: 0,
+            to_x: 1,
+            to_y: 1,
+            captured_piece: None,
+        };
+
+        history.push_with_color(move_record.clone(), Color::Red);
+        history.push_with_color(move_record, Color::Red);
+
+        // Just verify it compiles with serde derives
+        let json = serde_json::to_string(&history);
+        assert!(json.is_ok());
+    }
+
+    #[test]
+    fn test_red_black_move_tracking() {
+        // Test that push correctly tracks red vs black moves
+        let mut history = History::new();
+
+        let red_move = MoveRecord {
+            from_x: 0,
+            from_y: 0,
+            to_x: 1,
+            to_y: 1,
+            captured_piece: None,
+        };
+
+        let black_move = MoveRecord {
+            from_x: 8,
+            from_y: 9,
+            to_x: 7,
+            to_y: 8,
+            captured_piece: None,
+        };
+
+        // Push red move - should create new round
+        history.push_with_color(red_move.clone(), Color::Red);
+        assert_eq!(history.rounds.len(), 1);
+        assert_eq!(history.rounds[0].round_number, 1);
+        assert_eq!(history.rounds[0].red_move.from_x, 0);
+        assert_eq!(history.rounds[0].black_move, None);
+
+        // Push black move - should add to existing round
+        history.push_with_color(black_move.clone(), Color::Black);
+        assert_eq!(history.rounds.len(), 1);
+        assert_eq!(history.rounds[0].round_number, 1);
+        assert_eq!(history.rounds[0].red_move.from_x, 0);
+        assert!(history.rounds[0].black_move.is_some());
+        assert_eq!(history.rounds[0].black_move.as_ref().unwrap().from_x, 8);
+
+        // Push another red move - should create new round
+        let red_move2 = MoveRecord {
+            from_x: 1,
+            from_y: 1,
+            to_x: 2,
+            to_y: 2,
+            captured_piece: None,
+        };
+        history.push_with_color(red_move2.clone(), Color::Red);
+        assert_eq!(history.rounds.len(), 2);
+        assert_eq!(history.rounds[1].round_number, 2);
+        assert_eq!(history.rounds[1].red_move.from_x, 1);
+        assert_eq!(history.rounds[1].black_move, None);
+    }
+
+    #[test]
+    fn test_pop_with_colors() {
+        // Test pop returns correct color information
+        let mut history = History::new();
+
+        let red_move = MoveRecord {
+            from_x: 0,
+            from_y: 0,
+            to_x: 1,
+            to_y: 1,
+            captured_piece: None,
+        };
+
+        let black_move = MoveRecord {
+            from_x: 8,
+            from_y: 9,
+            to_x: 7,
+            to_y: 8,
+            captured_piece: None,
+        };
+
+        // Push red move
+        history.push_with_color(red_move.clone(), Color::Red);
+
+        // Push black move
+        history.push_with_color(black_move.clone(), Color::Black);
+
+        // First pop should return black move
+        let (popped_move, color) = history.pop().unwrap();
+        assert_eq!(popped_move.from_x, 8);
+        assert_eq!(color, Color::Black);
+        assert_eq!(history.rounds.len(), 1);
+        assert_eq!(history.rounds[0].black_move, None);
+
+        // Second pop should return red move and remove the round
+        let (popped_move, color) = history.pop().unwrap();
+        assert_eq!(popped_move.from_x, 0);
+        assert_eq!(color, Color::Red);
+        assert_eq!(history.rounds.len(), 0);
+    }
+
+    #[test]
+    fn test_missing_methods() {
+        // Test len, get_round, last_round, last_round_mut methods
+        let mut history = History::new();
+
+        assert_eq!(history.len(), 0);
+        assert!(history.last_round().is_none());
+        assert!(history.last_round_mut().is_none());
+        assert!(history.get_round(0).is_none());
+
+        let red_move = MoveRecord {
+            from_x: 0,
+            from_y: 0,
+            to_x: 1,
+            to_y: 1,
+            captured_piece: None,
+        };
+
+        history.push_with_color(red_move.clone(), Color::Red);
+
+        assert_eq!(history.len(), 1);
+        assert!(history.last_round().is_some());
+        assert!(history.last_round_mut().is_some());
+        assert!(history.get_round(0).is_some());
+        assert!(history.get_round(1).is_none());
+
+        let round = history.get_round(0).unwrap();
+        assert_eq!(round.round_number, 1);
+        assert_eq!(round.red_move.from_x, 0);
+    }
+
+    #[test]
+    fn test_edge_cases() {
+        // Test edge cases like black moving first
+        let mut history = History::new();
+
+        let black_move = MoveRecord {
+            from_x: 8,
+            from_y: 9,
+            to_x: 7,
+            to_y: 8,
+            captured_piece: None,
+        };
+
+        // Black move first (edge case)
+        history.push_with_color(black_move.clone(), Color::Black);
+        assert_eq!(history.len(), 1);
+        let round = history.get_round(0).unwrap();
+        assert_eq!(round.round_number, 1);
+        assert!(round.black_move.is_some());
+        assert_eq!(round.black_move.as_ref().unwrap().from_x, 8);
+
+        // Red move should create new round
+        let red_move = MoveRecord {
+            from_x: 0,
+            from_y: 0,
+            to_x: 1,
+            to_y: 1,
+            captured_piece: None,
+        };
+        history.push_with_color(red_move.clone(), Color::Red);
+        assert_eq!(history.len(), 2);
+        let round2 = history.get_round(1).unwrap();
+        assert_eq!(round2.round_number, 2);
+        assert_eq!(round2.red_move.from_x, 0);
+        assert_eq!(round2.black_move, None);
     }
 }

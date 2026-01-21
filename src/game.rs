@@ -130,25 +130,31 @@ impl GameStateManager {
                 self.state.is_ended = true;
                 self.state.winner = Some(self.state.current_turn);
                 // Record move
-                self.history.push(MoveRecord {
-                    from_x,
-                    from_y,
-                    to_x,
-                    to_y,
-                    captured_piece,
-                });
+                self.history.push_with_color(
+                    MoveRecord {
+                        from_x,
+                        from_y,
+                        to_x,
+                        to_y,
+                        captured_piece,
+                    },
+                    self.state.current_turn,
+                );
                 return Ok(());
             }
         }
 
         // Record move
-        self.history.push(MoveRecord {
-            from_x,
-            from_y,
-            to_x,
-            to_y,
-            captured_piece,
-        });
+        self.history.push_with_color(
+            MoveRecord {
+                from_x,
+                from_y,
+                to_x,
+                to_y,
+                captured_piece,
+            },
+            self.state.current_turn,
+        );
 
         // Switch turn
         self.state.current_turn = match self.state.current_turn {
@@ -176,7 +182,7 @@ impl GameStateManager {
             return Err(crate::ChessError::NoHistory);
         }
 
-        let last_move = self.history.pop().unwrap();
+        let (last_move, move_color) = self.history.pop().unwrap();
 
         // Restore piece
         let piece = self
@@ -191,15 +197,13 @@ impl GameStateManager {
             .board
             .set_piece(last_move.to_x, last_move.to_y, last_move.captured_piece);
 
-        // Switch turn back
-        self.state.current_turn = match self.state.current_turn {
-            Color::Red => Color::Black,
-            Color::Black => Color::Red,
-        };
+        // Set turn to the color of the move that was undone
+        self.state.current_turn = move_color;
 
-        // Check if in check
+        // Check if in check for the current player
         self.state.is_in_check = self.is_in_check(self.state.current_turn);
 
+        // Reset game ended state since we undid a move
         self.state.is_ended = false;
         self.state.winner = None;
 
@@ -369,5 +373,378 @@ mod tests {
         assert_eq!(manager.state.winner, Some(Color::Red));
 
         println!("\n=== 测试成功！吃将后游戏立即结束 ===\n");
+    }
+
+    #[test]
+    fn test_undo_move_correct_turn() {
+        println!("=== 测试撤销移动后的正确回合 ===\n");
+
+        // 创建一个简单的测试棋局：红方兵，黑方卒
+        let mut board = Board::new();
+        // 红方兵在 (0,6)，可以向前移动
+        board.set_piece(0, 6, Some(Piece::new(PieceType::Soldier, Color::Red)));
+        // 黑方卒在 (8,3)，可以向前移动
+        board.set_piece(8, 3, Some(Piece::new(PieceType::Soldier, Color::Black)));
+
+        let state = GameState {
+            board,
+            current_turn: Color::Red,
+            is_in_check: false,
+            is_ended: false,
+            winner: None,
+        };
+
+        let mut manager = GameStateManager {
+            state,
+            history: History::new(),
+        };
+
+        println!("初始状态: 红方回合");
+        assert_eq!(manager.state.current_turn, Color::Red);
+
+        // 红方移动：兵向前移动一步 (0,6) -> (0,5)
+        println!("\n1. 红方移动 (0,6) -> (0,5)");
+        let result = manager.make_move(0, 6, 0, 5);
+        println!("   移动结果: {:?}", result);
+        assert!(result.is_ok(), "红方移动失败: {:?}", result);
+        assert_eq!(
+            manager.state.current_turn,
+            Color::Black,
+            "红方移动后应该是黑方回合"
+        );
+
+        // 黑方移动：卒向前移动一步 (8,3) -> (8,4)
+        println!("2. 黑方移动 (8,3) -> (8,4)");
+        let result = manager.make_move(8, 3, 8, 4);
+        println!("   移动结果: {:?}", result);
+        assert!(result.is_ok(), "黑方移动失败: {:?}", result);
+        assert_eq!(
+            manager.state.current_turn,
+            Color::Red,
+            "黑方移动后应该是红方回合"
+        );
+
+        println!("\n--- 撤销测试 ---");
+        println!("当前历史长度（轮次数）: {}", manager.history.len());
+
+        // 测试弹出第一个移动（黑方移动）
+        let (popped_move, popped_color) = manager.history.peek().unwrap();
+        println!(
+            "当前栈顶移动: 颜色={:?}, from=({},{})",
+            popped_color, popped_move.from_x, popped_move.from_y
+        );
+        assert_eq!(popped_color, Color::Black, "栈顶应该是黑方移动");
+
+        // 撤销黑方移动
+        println!("\n3. 撤销黑方移动");
+        let undo_result = manager.undo_move();
+        println!("   撤销结果: {:?}", undo_result);
+        assert!(undo_result.is_ok());
+
+        // 验证撤销后的回合：撤销黑方移动后应该轮到黑方
+        println!("   撤销后回合: {:?}", manager.state.current_turn);
+        println!("   [期望] 撤销黑方移动后应该轮到黑方");
+        println!("   [实际] 回合: {:?}", manager.state.current_turn);
+
+        // 关键测试：撤销黑方移动后应该轮到黑方
+        assert_eq!(
+            manager.state.current_turn,
+            Color::Black,
+            "撤销黑方移动后应该是黑方回合"
+        );
+
+        // 检查历史状态
+        println!("   撤销后历史长度: {}", manager.history.len());
+
+        // 测试弹出第二个移动（红方移动）
+        if let Some((peeked_move, peeked_color)) = manager.history.peek() {
+            println!(
+                "   当前栈顶移动: 颜色={:?}, from=({},{})",
+                peeked_color, peeked_move.from_x, peeked_move.from_y
+            );
+            assert_eq!(peeked_color, Color::Red, "栈顶应该是红方移动");
+        }
+
+        // 撤销红方移动
+        println!("\n4. 撤销红方移动");
+        let undo_result = manager.undo_move();
+        println!("   撤销结果: {:?}", undo_result);
+        assert!(undo_result.is_ok());
+
+        // 验证撤销后的回合：撤销红方移动后应该轮到红方
+        println!("   撤销后回合: {:?}", manager.state.current_turn);
+        println!("   [期望] 撤销红方移动后应该轮到红方");
+        println!("   [实际] 回合: {:?}", manager.state.current_turn);
+
+        // 撤销红方移动后，应该轮到红方
+        assert_eq!(
+            manager.state.current_turn,
+            Color::Red,
+            "撤销红方移动后应该是红方回合"
+        );
+
+        // 检查历史是否为空
+        println!("   最终历史长度: {}", manager.history.len());
+        assert!(manager.history.is_empty(), "历史应该为空");
+
+        println!("\n=== 测试成功！撤销后回合正确 ===\n");
+    }
+
+    #[test]
+    fn test_undo_single_red_move() {
+        println!("=== 测试撤销单个红方移动 ===\n");
+
+        // 创建一个简单的测试棋局：只有红方兵
+        let mut board = Board::new();
+        board.set_piece(0, 6, Some(Piece::new(PieceType::Soldier, Color::Red)));
+
+        let state = GameState {
+            board,
+            current_turn: Color::Red,
+            is_in_check: false,
+            is_ended: false,
+            winner: None,
+        };
+
+        let mut manager = GameStateManager {
+            state,
+            history: History::new(),
+        };
+
+        println!("初始状态: 红方回合");
+        assert_eq!(manager.state.current_turn, Color::Red);
+
+        // 红方移动
+        println!("\n1. 红方移动 (0,6) -> (0,5)");
+        let result = manager.make_move(0, 6, 0, 5);
+        println!("   移动结果: {:?}", result);
+        assert!(result.is_ok(), "红方移动失败: {:?}", result);
+        assert_eq!(
+            manager.state.current_turn,
+            Color::Black,
+            "红方移动后应该是黑方回合"
+        );
+
+        println!("\n--- 撤销测试 ---");
+        println!("当前历史长度: {}", manager.history.len());
+
+        // 验证栈顶移动
+        let (peeked_move, peeked_color) = manager.history.peek().unwrap();
+        println!(
+            "当前栈顶移动: 颜色={:?}, from=({},{})",
+            peeked_color, peeked_move.from_x, peeked_move.from_y
+        );
+        assert_eq!(peeked_color, Color::Red, "栈顶应该是红方移动");
+
+        // 撤销红方移动
+        println!("\n2. 撤销红方移动");
+        let undo_result = manager.undo_move();
+        println!("   撤销结果: {:?}", undo_result);
+        assert!(undo_result.is_ok());
+
+        // 关键测试：撤销红方移动后应该轮到红方
+        println!("   撤销后回合: {:?}", manager.state.current_turn);
+        println!("   [期望] 撤销红方移动后应该轮到红方");
+        println!("   [实际] 回合: {:?}", manager.state.current_turn);
+
+        // 检查结果：撤销红方移动后应该轮到红方
+        assert_eq!(
+            manager.state.current_turn,
+            Color::Red,
+            "撤销红方移动后应该是红方回合"
+        );
+
+        // 检查历史是否为空
+        println!("   最终历史长度: {}", manager.history.len());
+        assert!(manager.history.is_empty(), "历史应该为空");
+
+        println!("\n=== 测试成功！单个红方移动撤销正确 ===\n");
+    }
+
+    #[test]
+    fn test_undo_move_with_color_logic() {
+        println!("=== 测试撤销移动的颜色逻辑 ===\n");
+
+        // 这个测试验证撤销逻辑是否正确使用颜色信息
+        // 我们创建一个简单的自定义棋盘，避免将军
+
+        let mut board = Board::new();
+
+        // 放置一些简单棋子用于测试
+        // 红方马在 (1,9)，红方兵在 (0,6)
+        board.set_piece(1, 9, Some(Piece::new(PieceType::Horse, Color::Red)));
+        board.set_piece(0, 6, Some(Piece::new(PieceType::Soldier, Color::Red)));
+
+        // 黑方马在 (7,0)，黑方卒在 (8,3)
+        board.set_piece(7, 0, Some(Piece::new(PieceType::Horse, Color::Black)));
+        board.set_piece(8, 3, Some(Piece::new(PieceType::Soldier, Color::Black)));
+
+        let state = GameState {
+            board,
+            current_turn: Color::Red,
+            is_in_check: false,
+            is_ended: false,
+            winner: None,
+        };
+
+        let mut manager = GameStateManager {
+            state,
+            history: History::new(),
+        };
+
+        println!("初始状态: 红方回合");
+        assert_eq!(manager.state.current_turn, Color::Red);
+
+        // 移动1：红方马移动 (1,9) -> (2,7) - 马走日
+        println!("\n移动1: 红方马 (1,9) -> (2,7)");
+        let result = manager.make_move(1, 9, 2, 7);
+        println!("   移动结果: {:?}", result);
+        assert!(result.is_ok(), "红方马移动失败: {:?}", result);
+        assert_eq!(
+            manager.state.current_turn,
+            Color::Black,
+            "红方移动后应该是黑方回合"
+        );
+
+        // 移动2：黑方马移动 (7,0) -> (5,1) - 马走日
+        println!("移动2: 黑方马 (7,0) -> (5,1)");
+        let result = manager.make_move(7, 0, 5, 1);
+        println!("   移动结果: {:?}", result);
+        assert!(result.is_ok(), "黑方马移动失败: {:?}", result);
+        assert_eq!(
+            manager.state.current_turn,
+            Color::Red,
+            "黑方移动后应该是红方回合"
+        );
+
+        // 移动3：红方兵向前移动 (0,6) -> (0,5)
+        println!("移动3: 红方兵 (0,6) -> (0,5)");
+        let result = manager.make_move(0, 6, 0, 5);
+        println!("   移动结果: {:?}", result);
+        assert!(result.is_ok(), "红方兵移动失败: {:?}", result);
+        assert_eq!(
+            manager.state.current_turn,
+            Color::Black,
+            "红方移动后应该是黑方回合"
+        );
+
+        println!("\n--- 复杂撤销场景 ---");
+        println!("当前回合: {:?} (应该是黑方)", manager.state.current_turn);
+        assert_eq!(
+            manager.state.current_turn,
+            Color::Black,
+            "当前应该是黑方回合"
+        );
+
+        // 现在我们有3个移动：红(马)、黑(马)、红(兵)
+
+        // 撤销移动3（红方兵）
+        println!("\n1. 撤销移动3（红方兵）");
+        let undo_result = manager.undo_move();
+        println!("   撤销结果: {:?}", undo_result);
+        assert!(undo_result.is_ok(), "撤销移动3失败: {:?}", undo_result);
+
+        // 修复后：撤销红方移动后应该轮到红方
+        println!("   撤销后回合: {:?}", manager.state.current_turn);
+        println!("   [修复后期望] 撤销红方移动后应该轮到红方");
+        println!("   [实际] 回合: {:?}", manager.state.current_turn);
+        assert_eq!(
+            manager.state.current_turn,
+            Color::Red,
+            "撤销红方移动后应该是红方回合"
+        );
+
+        // 撤销移动2（黑方马）
+        println!("\n2. 撤销移动2（黑方马）");
+        let undo_result = manager.undo_move();
+        println!("   撤销结果: {:?}", undo_result);
+        assert!(undo_result.is_ok(), "撤销移动2失败: {:?}", undo_result);
+
+        // 修复后：撤销黑方移动后应该轮到黑方
+        println!("   撤销后回合: {:?}", manager.state.current_turn);
+        println!("   [修复后期望] 撤销黑方移动后应该轮到黑方");
+        println!("   [实际] 回合: {:?}", manager.state.current_turn);
+        assert_eq!(
+            manager.state.current_turn,
+            Color::Black,
+            "撤销黑方移动后应该是黑方回合"
+        );
+
+        // 撤销移动1（红方马）
+        println!("\n3. 撤销移动1（红方马）");
+        let undo_result = manager.undo_move();
+        println!("   撤销结果: {:?}", undo_result);
+        assert!(undo_result.is_ok(), "撤销移动1失败: {:?}", undo_result);
+
+        // 修复后：撤销红方移动后应该轮到红方
+        println!("   撤销后回合: {:?}", manager.state.current_turn);
+        println!("   [修复后期望] 撤销红方移动后应该轮到红方");
+        println!("   [实际] 回合: {:?}", manager.state.current_turn);
+        assert_eq!(
+            manager.state.current_turn,
+            Color::Red,
+            "撤销红方移动后应该是红方回合"
+        );
+
+        println!("\n=== 测试成功！复杂撤销场景正确 ===\n");
+    }
+
+    #[test]
+    fn test_undo_move_fixed_logic() {
+        println!("=== 测试修复后的撤销逻辑 ===\n");
+
+        // 这个测试验证修复后的撤销逻辑是否正确使用颜色信息
+        // 修复后的代码应该基于移动的颜色设置当前回合
+
+        let mut manager = GameStateManager::new();
+
+        println!("初始回合: {:?}", manager.state.current_turn);
+        assert_eq!(manager.state.current_turn, Color::Red);
+
+        // 红方移动：兵 (0,6) -> (0,5)
+        println!("\n1. 红方移动 (0,6) -> (0,5)");
+        let result = manager.make_move(0, 6, 0, 5);
+        assert!(result.is_ok());
+        assert_eq!(manager.state.current_turn, Color::Black);
+
+        // 黑方移动：卒 (8,3) -> (8,4)
+        println!("2. 黑方移动 (8,3) -> (8,4)");
+        let result = manager.make_move(8, 3, 8, 4);
+        assert!(result.is_ok());
+        assert_eq!(manager.state.current_turn, Color::Red);
+
+        println!("\n--- 验证修复后的逻辑 ---");
+
+        // 场景1：撤销黑方移动
+        println!("\n3. 撤销黑方移动");
+        let undo_result = manager.undo_move();
+        assert!(undo_result.is_ok());
+
+        // 修复后：撤销黑方移动后应该轮到黑方
+        println!("   当前回合: {:?}", manager.state.current_turn);
+        println!("   [修复后期望] 撤销黑方移动后应该轮到黑方");
+        println!("   [实际] 回合: {:?}", manager.state.current_turn);
+        assert_eq!(
+            manager.state.current_turn,
+            Color::Black,
+            "撤销黑方移动后应该是黑方回合"
+        );
+
+        // 场景2：撤销红方移动
+        println!("\n4. 撤销红方移动");
+        let undo_result = manager.undo_move();
+        assert!(undo_result.is_ok());
+
+        // 修复后：撤销红方移动后应该轮到红方
+        println!("   当前回合: {:?}", manager.state.current_turn);
+        println!("   [修复后期望] 撤销红方移动后应该轮到红方");
+        println!("   [实际] 回合: {:?}", manager.state.current_turn);
+        assert_eq!(
+            manager.state.current_turn,
+            Color::Red,
+            "撤销红方移动后应该是红方回合"
+        );
+
+        println!("\n=== 测试成功！修复后的撤销逻辑正确 ===\n");
     }
 }
