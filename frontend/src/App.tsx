@@ -5,6 +5,11 @@ import GameStatus from './components/GameStatus.tsx';
 import ControlPanel from './components/ControlPanel.tsx';
 import { invoke } from '@tauri-apps/api/core';
 
+interface GameStateWithHistory {
+  game_state: GameState;
+  history: HistoryData;
+}
+
 interface GameState {
   board: any;
   current_turn: 'Red' | 'Black';
@@ -13,8 +18,26 @@ interface GameState {
   winner: 'Red' | 'Black' | null;
 }
 
+interface HistoryData {
+  rounds: RoundRecord[];
+}
+
+interface RoundRecord {
+  round_number: number;
+  red_move: MoveRecord;
+  black_move: MoveRecord | null;
+}
+
+interface MoveRecord {
+  from_x: number;
+  from_y: number;
+  to_x: number;
+  to_y: number;
+  captured_piece: any | null;
+}
+
 const App: React.FC = () => {
-  const [gameState, setGameState] = useState<GameState | null>(null);
+  const [gameState, setGameState] = useState<GameStateWithHistory | null>(null);
   const [moveHistory, setMoveHistory] = useState<string[]>([]);
 
   useEffect(() => {
@@ -24,7 +47,7 @@ const App: React.FC = () => {
 
   const initGame = async () => {
     try {
-      const state = await invoke<GameState>('new_game');
+      const state = await invoke<GameStateWithHistory>('new_game');
       setGameState(state);
       setMoveHistory([]);
     } catch (error) {
@@ -59,11 +82,14 @@ const App: React.FC = () => {
       );
       
       setGameState({
-        board: { cells },
-        current_turn: 'Red',
-        is_in_check: false,
-        is_ended: false,
-        winner: null
+        game_state: {
+          board: { cells },
+          current_turn: 'Red',
+          is_in_check: false,
+          is_ended: false,
+          winner: null
+        },
+        history: { rounds: [] }
       });
       setMoveHistory([]);
     }
@@ -72,8 +98,8 @@ const App: React.FC = () => {
   const handleMakeMove = async (fromX: number, fromY: number, toX: number, toY: number) => {
     try {
       // 验证移动：只能移动自己颜色的棋子
-      const piece = gameState?.board.cells[fromY][fromX];
-      if (!piece || piece.color !== gameState?.current_turn) {
+      const piece = gameState?.game_state.board.cells[fromY][fromX];
+      if (!piece || piece.color !== gameState?.game_state.current_turn) {
         return;
       }
 
@@ -85,7 +111,7 @@ const App: React.FC = () => {
         return;
       }
 
-      const state = await invoke<GameState>('make_move', { 
+      const state = await invoke<GameStateWithHistory>('make_move', { 
         fromX, fromY, toX, toY 
       });
       setGameState(state);
@@ -97,7 +123,7 @@ const App: React.FC = () => {
 
   const handleUndoMove = async () => {
     try {
-      const state = await invoke<GameState>('undo_move');
+      const state = await invoke<GameStateWithHistory>('undo_move');
       setGameState(state);
       setMoveHistory(prev => prev.slice(0, -1));
     } catch (error) {
@@ -108,8 +134,8 @@ const App: React.FC = () => {
   const handleGetValidMoves = async (x: number, y: number): Promise<[number, number][]> => {
     try {
       // 验证：只能获取自己颜色棋子的有效移动
-      const piece = gameState?.board.cells[y][x];
-      if (!piece || piece.color !== gameState?.current_turn) {
+      const piece = gameState?.game_state.board.cells[y][x];
+      if (!piece || piece.color !== gameState?.game_state.current_turn) {
         return [];
       }
 
@@ -137,7 +163,7 @@ const App: React.FC = () => {
   const convertMoveToNotation = (fromX: number, fromY: number, toX: number, toY: number) => {
     if (!gameState) return '';
     
-    const piece = gameState.board.cells[fromY][fromX];
+    const piece = gameState.game_state.board.cells[fromY][fromX];
     if (!piece) return '';
     
     const pieceName = getPieceName(piece);
@@ -192,19 +218,19 @@ const App: React.FC = () => {
       
       <main className="app-main">
         <div className="game-container">
-          <GameStatus 
-            currentTurn={gameState.current_turn}
-            isInCheck={gameState.is_in_check}
-            isEnded={gameState.is_ended}
-            winner={gameState.winner}
-          />
-          
-          <ChessBoard
-            board={gameState.board}
-            onPieceClick={handleGetValidMoves}
-            onMove={handleMakeMove}
-            isEnded={gameState.is_ended} // 传递游戏结束状态
-          />
+           <GameStatus 
+             currentTurn={gameState.game_state.current_turn}
+             isInCheck={gameState.game_state.is_in_check}
+             isEnded={gameState.game_state.is_ended}
+             winner={gameState.game_state.winner}
+           />
+           
+           <ChessBoard
+             board={gameState.game_state.board}
+             onPieceClick={handleGetValidMoves}
+             onMove={handleMakeMove}
+             isEnded={gameState.game_state.is_ended} // 传递游戏结束状态
+           />
           
           <ControlPanel
             onNewGame={initGame}
