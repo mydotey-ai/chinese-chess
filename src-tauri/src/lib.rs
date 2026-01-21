@@ -4,6 +4,7 @@ use tauri::command;
 // 从主 crate 导入
 use crate::game::GameState;
 use crate::game::GameStateManager;
+use crate::game_with_history::GameStateWithHistory;
 use crate::ChessError;
 
 #[command]
@@ -13,19 +14,25 @@ pub fn make_move(
     from_y: usize,
     to_x: usize,
     to_y: usize,
-) -> Result<GameState, ChessError> {
+) -> Result<GameStateWithHistory, ChessError> {
     let mut manager = manager.lock().unwrap();
     manager.make_move(from_x, from_y, to_x, to_y)?;
-    Ok(manager.state.clone())
+    Ok(GameStateWithHistory::new(
+        manager.state.clone(),
+        manager.history.clone(),
+    ))
 }
 
 #[command]
 pub fn undo_move(
     manager: tauri::State<'_, Mutex<GameStateManager>>,
-) -> Result<GameState, ChessError> {
+) -> Result<GameStateWithHistory, ChessError> {
     let mut manager = manager.lock().unwrap();
     manager.undo_move()?;
-    Ok(manager.state.clone())
+    Ok(GameStateWithHistory::new(
+        manager.state.clone(),
+        manager.history.clone(),
+    ))
 }
 
 #[command]
@@ -38,14 +45,15 @@ pub fn get_valid_moves(
 }
 
 #[command]
-pub fn get_game_state(manager: tauri::State<'_, Mutex<GameStateManager>>) -> GameState {
-    manager.lock().unwrap().state.clone()
+pub fn get_game_state(manager: tauri::State<'_, Mutex<GameStateManager>>) -> GameStateWithHistory {
+    let manager = manager.lock().unwrap();
+    GameStateWithHistory::new(manager.state.clone(), manager.history.clone())
 }
 
 #[command]
-pub fn new_game(manager: tauri::State<'_, Mutex<GameStateManager>>) -> GameState {
+pub fn new_game(manager: tauri::State<'_, Mutex<GameStateManager>>) -> GameStateWithHistory {
     let mut manager = manager.lock().unwrap();
     manager.state = crate::game::GameState::new();
     manager.history.clear();
-    manager.state.clone()
+    GameStateWithHistory::new(manager.state.clone(), manager.history.clone())
 }
