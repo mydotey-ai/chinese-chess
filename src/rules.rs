@@ -51,6 +51,75 @@ pub fn validate_move(
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::board::Board;
+    use crate::piece::{Color, Piece, PieceType};
+
+    #[test]
+    fn test_soldier_move_before_crossing_river() {
+        // Red soldier before crossing river (y=6)
+        let mut board = Board::new();
+        board.set_piece(4, 6, Some(Piece::new(PieceType::Soldier, Color::Red)));
+
+        // Should be able to move forward (up - toward black's territory)
+        assert!(validate_move(&board, 4, 6, 4, 5, Color::Red).is_ok());
+
+        // Should NOT be able to move sideways
+        assert!(validate_move(&board, 4, 6, 3, 6, Color::Red).is_err());
+        assert!(validate_move(&board, 4, 6, 5, 6, Color::Red).is_err());
+
+        // Should NOT be able to move backward (down - toward own territory)
+        assert!(validate_move(&board, 4, 6, 4, 7, Color::Red).is_err());
+
+        // Black soldier before crossing river (y=3)
+        let mut board = Board::new();
+        board.set_piece(4, 3, Some(Piece::new(PieceType::Soldier, Color::Black)));
+
+        // Should be able to move forward (down - toward red's territory)
+        assert!(validate_move(&board, 4, 3, 4, 4, Color::Black).is_ok());
+
+        // Should NOT be able to move sideways
+        assert!(validate_move(&board, 4, 3, 3, 3, Color::Black).is_err());
+        assert!(validate_move(&board, 4, 3, 5, 3, Color::Black).is_err());
+
+        // Should NOT be able to move backward (up - toward own territory)
+        assert!(validate_move(&board, 4, 3, 4, 2, Color::Black).is_err());
+    }
+
+    #[test]
+    fn test_soldier_move_after_crossing_river() {
+        // Red soldier after crossing river (y=4)
+        let mut board = Board::new();
+        board.set_piece(4, 4, Some(Piece::new(PieceType::Soldier, Color::Red)));
+
+        // Should be able to move forward (up - toward black's territory)
+        assert!(validate_move(&board, 4, 4, 4, 3, Color::Red).is_ok());
+
+        // Should be able to move sideways
+        assert!(validate_move(&board, 4, 4, 3, 4, Color::Red).is_ok());
+        assert!(validate_move(&board, 4, 4, 5, 4, Color::Red).is_ok());
+
+        // Should NOT be able to move backward (down - toward own territory)
+        assert!(validate_move(&board, 4, 4, 4, 5, Color::Red).is_err());
+
+        // Black soldier after crossing river (y=5)
+        let mut board = Board::new();
+        board.set_piece(4, 5, Some(Piece::new(PieceType::Soldier, Color::Black)));
+
+        // Should be able to move forward (down - toward red's territory)
+        assert!(validate_move(&board, 4, 5, 4, 6, Color::Black).is_ok());
+
+        // Should be able to move sideways
+        assert!(validate_move(&board, 4, 5, 3, 5, Color::Black).is_ok());
+        assert!(validate_move(&board, 4, 5, 5, 5, Color::Black).is_ok());
+
+        // Should NOT be able to move backward (up - toward own territory)
+        assert!(validate_move(&board, 4, 5, 4, 4, Color::Black).is_err());
+    }
+}
+
 fn validate_general_move(
     from_x: usize,
     from_y: usize,
@@ -262,16 +331,22 @@ fn validate_soldier_move(
     let dy = (from_y as isize - to_y as isize).abs();
 
     let forward = match color {
-        Color::Red => to_y > from_y,   // Red moves down (y increases)
-        Color::Black => to_y < from_y, // Black moves up (y decreases)
+        Color::Red => to_y < from_y, // Red moves up (y decreases) toward black's territory
+        Color::Black => to_y > from_y, // Black moves down (y increases) toward red's territory
     };
 
     let crossed_river = match color {
-        Color::Red => from_y >= 5,
-        Color::Black => from_y <= 4,
+        Color::Red => from_y <= 4, // Red crosses river when at y <= 4 (black's territory)
+        Color::Black => from_y >= 5, // Black crosses river when at y >= 5 (red's territory)
     };
 
-    let valid_move = (dx == 0 && dy == 1 && forward) || (crossed_river && dy == 0 && dx == 1);
+    let valid_move = if !crossed_river {
+        // Before crossing river: can only move forward
+        dx == 0 && dy == 1 && forward
+    } else {
+        // After crossing river: can move forward OR sideways
+        (dx == 0 && dy == 1 && forward) || (dy == 0 && dx == 1)
+    };
 
     if valid_move {
         Ok(())
