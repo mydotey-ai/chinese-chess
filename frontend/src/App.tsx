@@ -49,7 +49,7 @@ const App: React.FC = () => {
     try {
       const state = await invoke<GameStateWithHistory>('new_game');
       setGameState(state);
-      setMoveHistory([]);
+      updateHistoryFromState(state);
     } catch (error) {
       console.error('Error initializing game:', error);
       // Create fallback game state
@@ -115,7 +115,7 @@ const App: React.FC = () => {
         fromX, fromY, toX, toY 
       });
       setGameState(state);
-      addMoveToHistory(fromX, fromY, toX, toY);
+      updateHistoryFromState(state);
     } catch (error) {
       console.error('Error making move:', error);
     }
@@ -125,7 +125,7 @@ const App: React.FC = () => {
     try {
       const state = await invoke<GameStateWithHistory>('undo_move');
       setGameState(state);
-      setMoveHistory(prev => prev.slice(0, -1));
+      updateHistoryFromState(state);
     } catch (error) {
       console.error('Error undoing move:', error);
     }
@@ -160,18 +160,41 @@ const App: React.FC = () => {
     return chineseNames[piece.piece_type][piece.color];
   };
 
-  const convertMoveToNotation = (fromX: number, fromY: number, toX: number, toY: number) => {
+
+
+  const updateHistoryFromState = (state: GameStateWithHistory) => {
+    if (!state.history || !state.history.rounds) {
+      setMoveHistory([]);
+      return;
+    }
+    
+    const historyStrings: string[] = [];
+    
+    state.history.rounds.forEach(round => {
+      const redMoveStr = convertMoveRecordToNotation(round.red_move);
+      
+      if (round.black_move) {
+        const blackMoveStr = convertMoveRecordToNotation(round.black_move);
+        historyStrings.push(`${round.round_number}. ${redMoveStr} ${blackMoveStr}`);
+      } else {
+        historyStrings.push(`${round.round_number}. ${redMoveStr}`);
+      }
+    });
+    
+    setMoveHistory(historyStrings);
+  };
+
+  const convertMoveRecordToNotation = (move: MoveRecord): string => {
     if (!gameState) return '';
     
-    const piece = gameState.game_state.board.cells[fromY][fromX];
+    const piece = gameState.game_state.board.cells[move.from_y][move.from_x];
     if (!piece) return '';
     
     const pieceName = getPieceName(piece);
+    const colNum = piece.color === 'Red' ? (9 - move.from_x) : (move.from_x + 1);
     
-    const colNum = piece.color === 'Red' ? (9 - fromX) : (fromX + 1);
-    
-    const dx = toX - fromX;
-    const dy = toY - fromY;
+    const dx = move.to_x - move.from_x;
+    const dy = move.to_y - move.from_y;
     
     let action: string;
     let target: string;
@@ -182,7 +205,7 @@ const App: React.FC = () => {
         (dy < 0 ? '退' : '进');
       target = Math.abs(dy).toString();
     } else {
-      const targetColNum = piece.color === 'Red' ? (9 - toX) : (toX + 1);
+      const targetColNum = piece.color === 'Red' ? (9 - move.to_x) : (move.to_x + 1);
       
       if (dy === 0) {
         action = '平';
@@ -197,13 +220,6 @@ const App: React.FC = () => {
     }
     
     return `${pieceName}${colNum}${action}${target}`;
-  };
-
-  const addMoveToHistory = (fromX: number, fromY: number, toX: number, toY: number) => {
-    const moveStr = convertMoveToNotation(fromX, fromY, toX, toY);
-    if (moveStr) {
-      setMoveHistory(prev => [...prev, moveStr]);
-    }
   };
 
   if (!gameState) {
