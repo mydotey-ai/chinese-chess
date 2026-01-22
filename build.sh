@@ -105,3 +105,36 @@ check_dependencies() {
     show_success "All dependencies satisfied"
     return 0
 }
+
+# Clean function
+clean() {
+    show_info "Cleaning build artifacts..."
+    
+    # Clean frontend
+    if [ -d "frontend/dist" ]; then
+        show_info "Removing frontend dist..."
+        rm -rf frontend/dist
+    fi
+    
+    # Clean node_modules (optional)
+    if [ "$1" = "all" ]; then
+        if [ -d "frontend/node_modules" ]; then
+            show_info "Removing frontend node_modules..."
+            rm -rf frontend/node_modules
+        fi
+    fi
+    
+    # Clean Rust artifacts
+    if [ -d "target" ]; then
+        show_info "Cleaning Rust artifacts..."
+        cargo clean
+    fi
+    
+    # Clean Tauri artifacts
+    if [ -d "src-tauri/target" ]; then
+        show_info "Cleaning Tauri artifacts..."
+        rm -rf src-tauri/target
+    fi
+    
+    show_success "Clean completed"
+}
