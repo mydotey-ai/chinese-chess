@@ -288,3 +288,133 @@ build() {
         echo "  Type: $(file "$output_dir/chinese-chess.exe" | cut -d: -f2-)"
     fi
 }
+
+# Package help function
+show_package_help() {
+    echo "Package Command Usage: $0 package [OPTIONS]"
+    echo ""
+    echo "Options:"
+    echo "  --release             Build release version package"
+    echo "  --debug               Build debug version package (default)"
+    echo "  --target=<target>     Specify target platform"
+    echo "  --no-frontend         Skip frontend build (use existing dist)"
+    echo "  --help                Show this help"
+    echo ""
+    echo "Target platforms:"
+    echo "  windows-x86_64        Windows 64-bit (.exe)"
+    echo "  macos-x86_64          macOS Intel (.app, .dmg)"
+    echo "  macos-aarch64         macOS Apple Silicon (.app, .dmg)"
+    echo "  linux-x86_64          Linux 64-bit (.AppImage, .deb, .rpm)"
+    echo ""
+    echo "Example:"
+    echo "  $0 package --release --target=linux-x86_64"
+}
+
+# Package using Tauri
+package() {
+    local build_mode="debug"
+    local target=""
+    local skip_frontend=false
+    
+    # Parse arguments
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --release)
+                build_mode="release"
+                ;;
+            --debug)
+                build_mode="debug"
+                ;;
+            --target=*)
+                target="${1#*=}"
+                ;;
+            --no-frontend)
+                skip_frontend=true
+                ;;
+            --help)
+                show_package_help
+                return 0
+                ;;
+            *)
+                show_error "Unknown option: $1"
+                show_package_help
+                return 1
+                ;;
+        esac
+        shift
+    done
+    
+    show_info "Starting package ($build_mode mode)..."
+    
+    # Check if Tauri CLI is available
+    if ! command -v npx &> /dev/null; then
+        show_error "npx is required for Tauri packaging"
+        show_info "Installing Tauri CLI..."
+        npm install -g @tauri-apps/cli
+        if [ $? -ne 0 ]; then
+            show_error "Failed to install Tauri CLI"
+            return 1
+        fi
+    fi
+    
+    # Build frontend first
+    if [ "$skip_frontend" = false ]; then
+        build_frontend
+        if [ $? -ne 0 ]; then
+            return 1
+        fi
+    fi
+    
+    # Prepare Tauri build command
+    local tauri_cmd="npx tauri build"
+    
+    if [ "$build_mode" = "release" ]; then
+        tauri_cmd="$tauri_cmd --release"
+    fi
+    
+    if [ -n "$target" ]; then
+        # Convert simplified target names to Tauri targets
+        case "$target" in
+            windows*)
+                tauri_cmd="$tauri_cmd --target=x86_64-pc-windows-msvc"
+                ;;
+            macos-x86_64)
+                tauri_cmd="$tauri_cmd --target=x86_64-apple-darwin"
+                ;;
+            macos-aarch64)
+                tauri_cmd="$tauri_cmd --target=aarch64-apple-darwin"
+                ;;
+            linux*)
+                tauri_cmd="$tauri_cmd --target=x86_64-unknown-linux-gnu"
+                ;;
+            *)
+                tauri_cmd="$tauri_cmd --target=$target"
+                ;;
+        esac
+    fi
+    
+    show_debug "Running: $tauri_cmd"
+    
+    # Execute Tauri build
+    eval $tauri_cmd
+    if [ $? -ne 0 ]; then
+        show_error "Tauri packaging failed"
+        return 1
+    fi
+    
+    # Show package info
+    local package_dir="src-tauri/target/$build_mode"
+    if [ -n "$target" ]; then
+        package_dir="src-tauri/target/$target/$build_mode"
+    fi
+    
+    show_success "Packaging completed"
+    
+    # List generated packages
+    if [ -d "$package_dir" ]; then
+        show_info "Generated packages:"
+        find "$package_dir" -name "*.deb" -o -name "*.rpm" -o -name "*.msi" -o -name "*.app" -o -name "*.exe" -o -name "*.AppImage" -o -name "*.dmg" 2>/dev/null | while read -r pkg; do
+            echo "  - $(basename "$pkg") ($(du -h "$pkg" | cut -f1))"
+        done
+    fi
+}
