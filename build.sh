@@ -418,3 +418,86 @@ package() {
         done
     fi
 }
+
+# Release build function
+release() {
+    show_info "Starting release build and package..."
+    
+    # Build with release mode
+    build --release
+    if [ $? -ne 0 ]; then
+        return 1
+    fi
+    
+    # Package with release mode
+    package --release
+    if [ $? -ne 0 ]; then
+        return 1
+    fi
+    
+    show_success "Release build and package completed"
+}
+
+# All-in-one function
+all() {
+    show_info "Starting full build and package pipeline..."
+    
+    # Clean first
+    clean
+    if [ $? -ne 0 ]; then
+        return 1
+    fi
+    
+    # Check dependencies
+    check_dependencies
+    if [ $? -ne 0 ]; then
+        return 1
+    fi
+    
+    # Build and package with release mode
+    release
+    if [ $? -ne 0 ]; then
+        return 1
+    fi
+    
+    show_success "Full pipeline completed"
+}
+
+# Main function
+main() {
+    # Parse main command
+    local command="${1:-help}"
+    shift 2>/dev/null || true
+    
+    # Execute command
+    case "$command" in
+        help)
+            show_help
+            ;;
+        clean)
+            clean "$@"
+            ;;
+        build)
+            build "$@"
+            ;;
+        package)
+            package "$@"
+            ;;
+        release)
+            release "$@"
+            ;;
+        all)
+            all "$@"
+            ;;
+        *)
+            show_error "Unknown command: $command"
+            show_help
+            return 1
+            ;;
+    esac
+}
+
+# Script entry point
+if [[ "${BASH_SOURCE[0]}" = "${0}" ]]; then
+    main "$@"
+fi
