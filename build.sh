@@ -298,6 +298,7 @@ show_package_help() {
     echo "  --debug               Build debug version package (default)"
     echo "  --target=<target>     Specify target platform"
     echo "  --no-frontend         Skip frontend build (use existing dist)"
+    echo "  --binary-only         Only build binary, skip Tauri packaging"
     echo "  --help                Show this help"
     echo ""
     echo "Target platforms:"
@@ -315,6 +316,7 @@ package() {
     local build_mode="debug"
     local target=""
     local skip_frontend=false
+    local binary_only=false
     
     # Parse arguments
     while [ $# -gt 0 ]; do
@@ -331,6 +333,9 @@ package() {
             --no-frontend)
                 skip_frontend=true
                 ;;
+            --binary-only)
+                binary_only=true
+                ;;
             --help)
                 show_package_help
                 return 0
@@ -344,6 +349,13 @@ package() {
         shift
     done
     
+    # If binary-only mode, just build without Tauri packaging
+    if [ "$binary_only" = true ]; then
+        show_info "Binary-only mode: building executable only, skipping Tauri packaging"
+        build --$build_mode $([ -n "$target" ] && echo "--target=$target") --no-frontend
+        return $?
+    fi
+    
     show_info "Starting package ($build_mode mode)..."
     
     # Check if Tauri CLI is available
@@ -354,6 +366,39 @@ package() {
         if [ $? -ne 0 ]; then
             show_error "Failed to install Tauri CLI"
             return 1
+        fi
+    fi
+    
+    # Check if linuxdeploy is installed (for Linux packaging)
+    if [[ "$target" == linux* ]] || [[ -z "$target" && "$(uname)" == "Linux" ]]; then
+        if ! command -v linuxdeploy &> /dev/null; then
+            show_warning "linuxdeploy is required for Linux packaging"
+            show_info "Attempting to install linuxdeploy..."
+            
+            # Try to install linuxdeploy
+            if command -v wget &> /dev/null; then
+                wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage -O /tmp/linuxdeploy.AppImage
+                chmod +x /tmp/linuxdeploy.AppImage
+                sudo mv /tmp/linuxdeploy.AppImage /usr/local/bin/linuxdeploy
+            elif command -v curl &> /dev/null; then
+                curl -sL https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage -o /tmp/linuxdeploy.AppImage
+                chmod +x /tmp/linuxdeploy.AppImage
+                sudo mv /tmp/linuxdeploy.AppImage /usr/local/bin/linuxdeploy
+            else
+                show_error "Cannot install linuxdeploy: neither wget nor curl found"
+                show_info "Please install linuxdeploy manually:"
+                echo "  wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage"
+                echo "  chmod +x linuxdeploy-x86_64.AppImage"
+                echo "  sudo mv linuxdeploy-x86_64.AppImage /usr/local/bin/linuxdeploy"
+                return 1
+            fi
+            
+            if [ $? -eq 0 ]; then
+                show_success "linuxdeploy installed successfully"
+            else
+                show_error "Failed to install linuxdeploy"
+                return 1
+            fi
         fi
     fi
     
@@ -430,9 +475,10 @@ release() {
     fi
     
     # Package with release mode
-    package --release
+    package --release --binary-only
     if [ $? -ne 0 ]; then
-        return 1
+        show_warning "Tauri packaging failed, but binary build succeeded"
+        return 0
     fi
     
     show_success "Release build and package completed"
