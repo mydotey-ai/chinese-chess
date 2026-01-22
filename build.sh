@@ -442,9 +442,29 @@ package() {
     
     # Execute Tauri build
     eval $tauri_cmd
-    if [ $? -ne 0 ]; then
-        show_error "Tauri packaging failed"
-        return 1
+    local tauri_result=$?
+    
+    # Check if any packages were created even if some failed
+    local packages_found=0
+    local package_dirs=("target/$build_mode/bundle" "src-tauri/target/$build_mode/bundle")
+    
+    for pkg_dir in "${package_dirs[@]}"; do
+        if [ -d "$pkg_dir" ]; then
+            local count=$(find "$pkg_dir" -type f \( -name "*.deb" -o -name "*.rpm" -o -name "*.AppImage" -o -name "*.exe" -o -name "*.dmg" -o -name "*.msi" \) 2>/dev/null | wc -l)
+            if [ "$count" -gt 0 ]; then
+                packages_found=1
+                break
+            fi
+        fi
+    done
+    
+    if [ $tauri_result -ne 0 ]; then
+        if [ $packages_found -eq 1 ]; then
+            show_warning "Tauri packaging encountered errors, but some packages were created"
+        else
+            show_error "Tauri packaging failed"
+            return 1
+        fi
     fi
     
     # Show package info
