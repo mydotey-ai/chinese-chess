@@ -54,3 +54,7 @@ src-tauri/target/
 *.msi
 *.dmg
 *.dmgblock
+
+# Tauri bundle directories
+target/*/bundle/
+src-tauri/target/*/bundle/
