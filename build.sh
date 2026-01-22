@@ -352,7 +352,11 @@ package() {
     # If binary-only mode, just build without Tauri packaging
     if [ "$binary_only" = true ]; then
         show_info "Binary-only mode: building executable only, skipping Tauri packaging"
-        build --$build_mode $([ -n "$target" ] && echo "--target=$target") --no-frontend
+        if [ "$build_mode" = "release" ]; then
+            build --release $([ -n "$target" ] && echo "--target=$target") --no-frontend
+        else
+            build --debug $([ -n "$target" ] && echo "--target=$target") --no-frontend
+        fi
         return $?
     fi
     
@@ -413,8 +417,9 @@ package() {
     # Prepare Tauri build command
     local tauri_cmd="npx tauri build"
     
-    if [ "$build_mode" = "release" ]; then
-        tauri_cmd="$tauri_cmd --release"
+    # Tauri v2: default is release, use --debug for debug mode
+    if [ "$build_mode" = "debug" ]; then
+        tauri_cmd="$tauri_cmd --debug"
     fi
     
     if [ -n "$target" ]; then
@@ -441,7 +446,7 @@ package() {
     show_debug "Running: $tauri_cmd"
     
     # Execute Tauri build
-    eval $tauri_cmd
+    eval "$tauri_cmd"
     local tauri_result=$?
     
     # Check if any packages were created even if some failed
