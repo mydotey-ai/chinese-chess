@@ -24,6 +24,35 @@ cargo run
 cargo run --bin chinese-chess-cli
 ```
 
+## Build and Packaging
+
+### Using Build Scripts
+```bash
+# Full build and packaging
+./build.sh all
+
+# Platform-specific builds
+scripts/build-windows.sh    # Build for Windows
+scripts/build-macos.sh      # Build for macOS
+scripts/build-linux.sh      # Build for Linux
+
+# Individual operations
+./build.sh clean           # Clean artifacts
+./build.sh build --release # Build release
+./build.sh package         # Create packages
+```
+
+### Testing Built Applications
+```bash
+# Run CLI version
+./target/release/chinese-chess-cli
+
+# Run GUI version
+./target/release/chinese-chess
+```
+
+For detailed build documentation, see [README-BUILD.md](README-BUILD.md).
+
 ### Testing
 ```bash
 # Run all tests

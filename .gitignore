@@ -43,3 +43,14 @@ src/bin/
 
 # Screenshots
 *.png
+
+# Tauri build artifacts
+src-tauri/target/
+
+# Package files
+*.AppImage
+*.deb
+*.rpm
+*.msi
+*.dmg
+*.dmgblock
