@@ -31,7 +31,21 @@ The main build script supports the following commands:
 ./build.sh build [OPTIONS]         # Build application
 ./build.sh package [OPTIONS]       # Build and package
 ./build.sh release                 # Build and package release version
-./build.sh all                     # Full pipeline (clean → build → package)
+./build`sh all                     # Full pipeline (clean → build → package)
+```
+
+### Note on Linux Packaging
+
+The `package` command uses Tauri to create distributable packages. On Linux, this requires `linuxdeploy` which may need to be installed manually.
+
+If you only need the executable binary (recommended for development), use:
+```bash
+./build.sh build --release  # Builds binary without packaging
+```
+
+Or use `package --binary-only` to skip Tauri packaging:
+```bash
+./build.sh package --release --binary-only
 ```
 
 ### Platform-specific scripts
@@ -59,6 +73,7 @@ scripts/build-linux.sh             # Build for Linux
 ### Other options:
 - `--no-frontend`: Skip frontend build
 - `--no-backend`: Skip backend build
+- `--binary-only`: Only build binary, skip Tauri packaging
 - `--verbose`: Enable verbose output
 
 ## Output Files
