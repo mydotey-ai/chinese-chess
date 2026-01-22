@@ -138,3 +138,153 @@ clean() {
     
     show_success "Clean completed"
 }
+
+# Build frontend
+build_frontend() {
+    show_info "Building frontend..."
+    
+    cd frontend || exit 1
+    
+    # Check and install dependencies if needed
+    if [ ! -d "node_modules" ]; then
+        show_info "Installing frontend dependencies..."
+        npm install
+        if [ $? -ne 0 ]; then
+            show_error "Failed to install frontend dependencies"
+            return 1
+        fi
+    fi
+    
+    # Build frontend
+    show_info "Running frontend build..."
+    npm run build
+    if [ $? -ne 0 ]; then
+        show_error "Frontend build failed"
+        return 1
+    fi
+    
+    cd .. || exit 1
+    
+    show_success "Frontend build completed"
+    return 0
+}
+
+# Build backend (Rust)
+build_backend() {
+    local build_mode="$1"
+    local target="$2"
+    
+    show_info "Building backend ($build_mode)..."
+    
+    # Build command
+    local build_cmd="cargo build"
+    
+    if [ "$build_mode" = "release" ]; then
+        build_cmd="$build_cmd --release"
+    fi
+    
+    if [ -n "$target" ]; then
+        build_cmd="$build_cmd --target=$target"
+    fi
+    
+    show_debug "Running: $build_cmd"
+    
+    # Execute build
+    eval $build_cmd
+    if [ $? -ne 0 ]; then
+        show_error "Backend build failed"
+        return 1
+    fi
+    
+    show_success "Backend build completed"
+    return 0
+}
+
+# Build help function
+show_build_help() {
+    echo "Build Command Usage: $0 build [OPTIONS]"
+    echo ""
+    echo "Options:"
+    echo "  --release             Build release version"
+    echo "  --debug               Build debug version (default)"
+    echo "  --target=<target>     Specify target platform"
+    echo "  --no-frontend         Skip frontend build"
+    echo "  --no-backend          Skip backend build"
+    echo "  --help                Show this help"
+    echo ""
+    echo "Example:"
+    echo "  $0 build --release --target=x86_64-unknown-linux-gnu"
+}
+
+# Main build function
+build() {
+    local build_mode="debug"
+    local target=""
+    local skip_frontend=false
+    local skip_backend=false
+    
+    # Parse arguments
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --release)
+                build_mode="release"
+                ;;
+            --debug)
+                build_mode="debug"
+                ;;
+            --target=*)
+                target="${1#*=}"
+                ;;
+            --no-frontend)
+                skip_frontend=true
+                ;;
+            --no-backend)
+                skip_backend=true
+                ;;
+            --help)
+                show_build_help
+                return 0
+                ;;
+            *)
+                show_error "Unknown option: $1"
+                show_build_help
+                return 1
+                ;;
+        esac
+        shift
+    done
+    
+    show_info "Starting build ($build_mode mode)..."
+    
+    # Build frontend
+    if [ "$skip_frontend" = false ]; then
+        build_frontend
+        if [ $? -ne 0 ]; then
+            return 1
+        fi
+    fi
+    
+    # Build backend
+    if [ "$skip_backend" = false ]; then
+        build_backend "$build_mode" "$target"
+        if [ $? -ne 0 ]; then
+            return 1
+        fi
+    fi
+    
+    # Show build info
+    local output_dir="target/$build_mode"
+    if [ -n "$target" ]; then
+        output_dir="target/$target/$build_mode"
+    fi
+    
+    if [ -f "$output_dir/chinese-chess" ]; then
+        show_success "Build completed: $output_dir/chinese-chess"
+        echo "  Size: $(du -h "$output_dir/chinese-chess" | cut -f1)"
+        echo "  Type: $(file "$output_dir/chinese-chess" | cut -d: -f2-)"
+    elif [ -f "$output_dir/chinese-chess.exe" ]; then
+        show_success "Build completed: $output_dir/chinese-chess.exe"
+        echo "  Size: $(du -h "$output_dir/chinese-chess.exe" | cut -f1)"
+        echo "  Type: $(file "$output_dir/chinese-chess.exe" | cut -d: -f2-)"
+    fi
+}
