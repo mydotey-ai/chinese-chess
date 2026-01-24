@@ -3,7 +3,11 @@
 # Chinese Chess Build and Package Script
 # 中国象棋项目构建打包脚本
 
-set -e  # Exit on error
+# Add /tmp to PATH for linuxdeploy plugins
+export PATH="/tmp:$PATH"
+
+# Temporarily disable exit on error to handle tauri build failure gracefully
+set +e
 
 # Color definitions
 RED='\033[0;31m'
@@ -404,6 +408,21 @@ package() {
                 return 1
             fi
         fi
+        
+        # Check if linuxdeploy-plugin-appimage is available
+        if ! command -v linuxdeploy-plugin-appimage &> /dev/null; then
+            # Try to download to /tmp instead of installing system-wide
+            if [ ! -f "/tmp/linuxdeploy-plugin-appimage.AppImage" ]; then
+                show_info "Downloading linuxdeploy-plugin-appimage to /tmp..."
+                if command -v wget &> /dev/null; then
+                    wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/continuous/linuxdeploy-plugin-appimage-x86_64.AppImage -O /tmp/linuxdeploy-plugin-appimage.AppImage
+                    chmod +x /tmp/linuxdeploy-plugin-appimage.AppImage
+                elif command -v curl &> /dev/null; then
+                    curl -sL https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/continuous/linuxdeploy-plugin-appimage-x86_64.AppImage -o /tmp/linuxdeploy-plugin-appimage.AppImage
+                    chmod +x /tmp/linuxdeploy-plugin-appimage.AppImage
+                fi
+            fi
+        fi
     fi
     
     # Build frontend first
@@ -415,7 +434,8 @@ package() {
     fi
     
     # Prepare Tauri build command
-    local tauri_cmd="npx tauri build"
+    # Need to ensure PATH includes /tmp for linuxdeploy plugins to be found
+    local tauri_cmd="env PATH=\"/tmp:\$PATH\" npx tauri build"
     
     # Tauri v2: default is release, use --debug for debug mode
     if [ "$build_mode" = "debug" ]; then
@@ -445,9 +465,12 @@ package() {
     
     show_debug "Running: $tauri_cmd"
     
-    # Execute Tauri build
+    # Temporarily disable exit on error for tauri build
+    set +e
     eval "$tauri_cmd"
     local tauri_result=$?
+    # Re-enable exit on error
+    set -e
     
     # Check if any packages were created even if some failed
     local packages_found=0
@@ -470,7 +493,50 @@ package() {
             show_error "Tauri packaging failed"
             return 1
         fi
+        
+        # Try to fix AppImage if it failed
+        if [[ "$target" == linux* ]] || [[ -z "$target" && "$(uname)" == "Linux" ]]; then
+            if [ -d "target/$build_mode/bundle/appimage/ChineseChess.AppDir" ]; then
+                show_info "Attempting to fix AppImage creation..."
+                
+                # Download plugin if needed
+                local plugin="/tmp/linuxdeploy-plugin-appimage.AppImage"
+                if [ ! -f "$plugin" ]; then
+                    show_info "Downloading linuxdeploy-plugin-appimage..."
+                    if command -v wget &> /dev/null; then
+                        wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/continuous/linuxdeploy-plugin-appimage-x86_64.AppImage -O "$plugin"
+                        chmod +x "$plugin"
+                    elif command -v curl &> /dev/null; then
+                        curl -sL https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/continuous/linuxdeploy-plugin-appimage-x86_64.AppImage -o "$plugin"
+                        chmod +x "$plugin"
+                    fi
+                fi
+                
+                # Fix icon
+                local appdir="target/$build_mode/bundle/appimage/ChineseChess.AppDir"
+                if [ -f "$appdir/ChineseChess.png" ] && [ ! -f "$appdir/chinese-chess.png" ]; then
+                    cp "$appdir/ChineseChess.png" "$appdir/chinese-chess.png"
+                fi
+                
+                # Run plugin with proper path
+                if [ -f "$plugin" ]; then
+                    # Temporarily add /tmp to PATH for plugin to be found
+                    export PATH="/tmp:$PATH"
+                    # Use relative path for appdir since we're changing directory
+                    cd "target/$build_mode/bundle/appimage" && "$plugin" --appdir="ChineseChess.AppDir" 2>&1 | grep -v "^$" || true
+                    cd - > /dev/null
+                    
+                    # Check if AppImage was created
+                    if [ -f "target/$build_mode/bundle/appimage/ChineseChess-x86_64.AppImage" ]; then
+                        show_success "AppImage created successfully"
+                    else
+                        show_warning "Failed to create AppImage"
+                    fi
+                fi
+            fi
+        fi
     fi
+        
     
     # Show package info
     local package_dir="src-tauri/target/$build_mode"
